@@ -17,6 +17,8 @@ class HierarchicalModel(BaseModel):
         parser.add_argument('--delete_col', default=['u_speed', 'v_speed', 'latitude', 'longitude']
                             , help='HNP does not use these attributes')
         parser.add_argument('--use_adj', default=True)
+        # Use a larger init gain for hierarchical NP to avoid vanishing activations.
+        parser.set_defaults(init_gain=1.0)
         return parser
 
     def __init__(self, opt, model_config):
@@ -120,12 +122,18 @@ class HierarchicalModel(BaseModel):
         """
         assert p_y_pred.mean.shape == y_target.shape
         # mean for 1-st, 2-nd dimension, sum for 3-th, 4-th dimension
-        valid_index_target = 1 - missing_index_target.permute([0, 2, 1]).unsqueeze(2)
+        valid_index_target = (1 - missing_index_target.permute([0, 2, 1]).unsqueeze(2)).float()
+        finite_index_target = torch.isfinite(y_target).float()
+        valid_index_target = valid_index_target * finite_index_target
+
+        # Normal.log_prob validates every element in value, so replace invalid targets first.
+        safe_y_target = torch.where(torch.isfinite(y_target), y_target, p_y_pred.mean.detach())
         time = valid_index_target.shape[-1]
         # rescale the loss at time dimension, as the time dimension use sum
-        time_rescale = time / torch.sum(valid_index_target, dim=-1, keepdim=True)
+        valid_count = torch.sum(valid_index_target, dim=-1, keepdim=True).clamp_min(1.0)
+        time_rescale = time / valid_count
 
-        log_likelihood = p_y_pred.log_prob(y_target) * valid_index_target
+        log_likelihood = p_y_pred.log_prob(safe_y_target) * valid_index_target
         log_likelihood = log_likelihood / time_rescale
         log_likelihood = log_likelihood.mean(dim=[0, 1]).sum()
 
@@ -162,12 +170,14 @@ class HierarchicalNP(nn.Module):
             # the name posterior is weird for context set. This is because we have y for the set, so that we can use this 'posterior encoder'.
             # However, it is still conditional prior theoretically in this sense
         p_d_c, p_d_t = self.deter(x_context, y_context, x_target, None, adj, missing_index_context)
-        p_context, p_dists, var_c_cache, var_t_cache = self.inference(p_d_c, p_d_t, adj[:, 0], missing_index_context, training)
+        p_context, p_dists, var_c_cache, var_t_cache = self.inference(
+            p_d_c, p_d_t, adj[:, 0], missing_index_context, training=training, use_posterior=False)
 
         if y_target is not None:
             # inference model (posterior)
             d_c, d_t = self.deter(x_context, y_context, x_target, y_target, adj, missing_index_context)
-            q_target, q_dists, _, _ = self.inference(d_c, d_t, adj[:, 0], missing_index_context)
+            q_target, q_dists, _, _ = self.inference(
+                d_c, d_t, adj[:, 0], missing_index_context, training=training, use_posterior=True)
 
             # observation model (likelihood)
             p_y_pred = self.observation(q_target)

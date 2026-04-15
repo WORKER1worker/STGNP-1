@@ -1,0 +1,44 @@
+----------------- Options ---------------
+               batch_size: 128                           
+          checkpoints_dir: ./checkpoints/SM              	[default: ./checkpoints]
+                   config: SM_config1                    	[default: config1]
+            covariate_dim: 0                             
+             dataset_mode: SM                            	[default: ]
+               delete_col: ['u_speed', 'v_speed', 'latitude', 'longitude']
+            enable_visual: False                         
+                    epoch: best                          	[default: latest]
+                file_time: 20260413T124141               	[default: ]
+                  gpu_ids: 0                             	[default: -1]
+                init_gain: 1.0                           
+                init_type: xavier                        
+                  isTrain: False                         	[default: None]
+                load_iter: 0                             	[default: 0]
+         max_dataset_size: inf                           
+                    model: hierarchical                  	[default: ]
+                     name: hierarchical_SM_20260413T124141	[default: None]
+          num_eval_target: 8                             
+              num_threads: 0                             
+                    phase: test                          
+                pred_attr: SM                            	[default: PM25_Concentration]
+               print_freq: 10                            
+                     seed: 2023                          
+           serial_batches: True                          
+              spatial_dim: 2                             
+                    t_len: 24                            
+           train_stations: PL02,PL06,PL18,PL19,PL16,PL09,PL14,PL05,PL01
+                  use_adj: True                          
+  use_temporal_only_split: True                          
+use_train_station_whitelist: True                          
+                  verbose: False                         
+                    y_dim: 1                             
+----------------- End -------------------
+----------------- Model Configurations ---------------
+             tcn_channels: [32, 64]                      
+          latent_channels: [16, 32]                      
+              emd_channel: 16                            
+        num_latent_layers: 1                             
+   observation_hidden_dim: 128                           
+   num_observation_layers: 3                             
+          tcn_kernel_size: 3                             
+                  dropout: 0.1                           
+----------------- End -------------------

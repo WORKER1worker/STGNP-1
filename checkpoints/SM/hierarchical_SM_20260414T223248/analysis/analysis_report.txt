@@ -1,0 +1,47 @@
+================================================================================
+模型测试与结果分析报告
+================================================================================
+生成时间: 2026-04-14 23:05:43
+数据集: SM
+模型: hierarchical
+预测属性: SM
+checkpoint目录: ./checkpoints/SM/hierarchical_SM_20260414T223248
+总耗时: 7.07 秒
+
+[一] 数据映射来源
+test_nodes来源: dataset/SM/test_nodes.npy
+站点元数据来源: data/dataset/SM/Pali-Stations.csv
+
+[二] 样本统计
+保留样本数: 225159
+过滤样本数: 126921
+
+[三] 总体指标
+总体 MAE: 0.046999
+总体 RMSE: 0.056625
+
+[四] 模型内部 metrics（来自 model.compute_metrics）
+MAE: 0.046999
+RMSE: 0.056625
+MAPE: 0.754930
+
+[五] 分站点指标（前20条，按 MAE 降序）
+station_id  target_station_index  original_node_index  sample_count      MAE     RMSE
+      PL23                     7                   22           325 0.103964 0.105641
+      PL13                    12                   12         20544 0.072778 0.078420
+      PL10                     9                    9         37229 0.062556 0.067712
+      PL17                    16                   16          5639 0.056936 0.060622
+      PL11                    10                   10         37231 0.053029 0.064404
+      PL12                     5                   11         31497 0.044088 0.048711
+      PL14                    13                   13         18606 0.040055 0.051497
+      PL15                    14                   14         18601 0.037756 0.041335
+      PL16                    15                   15         18497 0.036434 0.052684
+      PL09                     8                    8         18624 0.025543 0.029801
+      PL05                     2                    4         18366 0.024130 0.034922
+
+[六] 产物路径
+结构化CSV: checkpoints/SM/hierarchical_SM_20260414T223248/analysis/predictions_structured.csv
+趋势图: checkpoints/SM/hierarchical_SM_20260414T223248/analysis/trend_prediction_vs_truth.png
+误差图: checkpoints/SM/hierarchical_SM_20260414T223248/analysis/error_analysis.png
+分站点指标CSV: checkpoints/SM/hierarchical_SM_20260414T223248/analysis/station_metrics.csv
+================================================================================

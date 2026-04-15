@@ -34,9 +34,19 @@ class InferenceModel(nn.Module):
     def __init__(self, tcn_channels, latent_channels, num_hidden_layers):
         super(InferenceModel, self).__init__()
 
+        # Context branch used by both prior and posterior aggregation.
         self.layers_c = [LatentLayer(tcn_channels[i], 0, latent_channels[i],
                                    latent_channels[i], num_hidden_layers) for i in range(len(tcn_channels))]
         self.layers_c = nn.ModuleList(self.layers_c)
+        # Target branch for conditional prior p(z|context).
+        self.layers_t_prior = [LatentLayer(tcn_channels[i], 0, latent_channels[i],
+                                          latent_channels[i], num_hidden_layers) for i in range(len(tcn_channels))]
+        self.layers_t_prior = nn.ModuleList(self.layers_t_prior)
+        # Target branch for posterior q(z|context,target).
+        self.layers_t_posterior = [LatentLayer(tcn_channels[i], 0, latent_channels[i],
+                                              latent_channels[i], num_hidden_layers) for i in range(len(tcn_channels))]
+        self.layers_t_posterior = nn.ModuleList(self.layers_t_posterior)
+
         self.latent_layer = [nn.Conv1d(latent_channels[i], tcn_channels[i-1], 1) for i in range(1, len(tcn_channels))]
         self.latent_layer = nn.ModuleList(self.latent_layer)
         # self.layers_t = [LatentLayer(tcn_channels[i], latent_channels[i + 1], latent_channels[i],
@@ -50,7 +60,7 @@ class InferenceModel(nn.Module):
         eps = torch.randn_like(std)
         return mu + eps * std
 
-    def forward(self, d_c, d_t, adj, missing_index_context, training=True):
+    def forward(self, d_c, d_t, adj, missing_index_context, training=True, use_posterior=False):
         """
 
         Args:
@@ -62,13 +72,15 @@ class InferenceModel(nn.Module):
         Returns:
 
         """
+        target_layers = self.layers_t_posterior if use_posterior else self.layers_t_prior
+
         b, num_m, num_n = adj.shape
         t = d_c[0].shape[-1]
 
         adj = torch.tile(adj.unsqueeze(1), [1, t, 1, 1])
         missing_index_context = torch.tile(missing_index_context.unsqueeze(2), [1, 1, num_m, 1])
         adj = adj * (1 - missing_index_context)
-        norm_adj = adj / (torch.sum(adj, dim=-1, keepdim=True) + 1)  # 1 for the target node
+        norm_adj = adj / (torch.sum(adj, dim=-1, keepdim=True) + 1e-8)
         norm_adj = norm_adj.permute(0, 2, 3, 1 )  # [batch, num_m, num_n, time]
 
         # variance cache
@@ -77,27 +89,52 @@ class InferenceModel(nn.Module):
 
         # top-down
         r_c, var_c = self.layers_c[-1](d_c[-1])
-        mu_t, var_t = self.layers_c[-1](d_t[-1])
+        mu_t, var_t = target_layers[-1](d_t[-1])
         var_c_cache.append(var_c.detach()), var_t_cache.append(var_t.detach())
 
         # Gaussian conditioning
-        var_t_agg = 1 / ((1 / var_t) + torch.sum(norm_adj.unsqueeze(-2) ** 2 / var_c.unsqueeze(1), dim=-3))
-        mu_t_agg = var_t_agg * (
-                        mu_t / var_t + torch.sum(norm_adj.unsqueeze(-2) ** 2 * r_c.unsqueeze(1) / var_c.unsqueeze(1), dim=2))
-        dists = [Normal(mu_t_agg, torch.sqrt(var_t_agg))]
-        z = [dists[-1].rsample()] if training else [dists[-1].mean]
+        # Add epsilon for numerical stability to avoid NaN/Inf
+        eps = 1e-6  # Increased epsilon for better stability
+        
+        # Clamp variances to prevent numerical issues
+        var_t = torch.clamp(var_t, min=eps)
+        var_c = torch.clamp(var_c, min=eps)
+        
+        # Calculate variance aggregation
+        inv_var_sum = (1 / var_t) + torch.sum(norm_adj.unsqueeze(-2) ** 2 / var_c.unsqueeze(1), dim=-3)
+        var_t_agg = torch.clamp(1 / (inv_var_sum + eps), min=eps)
+        
+        # Calculate mean aggregation  
+        mu_terms = mu_t / var_t + torch.sum(norm_adj.unsqueeze(-2) ** 2 * r_c.unsqueeze(1) / var_c.unsqueeze(1), dim=2)
+        mu_t_agg = var_t_agg * mu_terms
+        
+        # Replace any NaN values with mean value
+        mu_t_agg = torch.where(torch.isnan(mu_t_agg), torch.zeros_like(mu_t_agg), mu_t_agg)
+        var_t_agg = torch.where(torch.isnan(var_t_agg), torch.ones_like(var_t_agg) * eps, var_t_agg)
+        dists = [Normal(mu_t_agg, torch.sqrt(torch.clamp(var_t_agg, min=eps)))]
+        z = [dists[-1].rsample()] if training else [dists[-1].mean.detach()]
 
         for i in reversed(range(len(self.layers_c)-1)):
             z_next = torch.relu(self.latent_layer[i](z[-1].view([b*num_m, -1, t]))).view([b, num_m, -1, t])
-            mu_t, var_t = self.layers_c[i](d_t[i] + z_next)
+            mu_t, var_t = target_layers[i](d_t[i] + z_next)
             r_c, var_c = self.layers_c[i](d_c[i])
             var_c_cache.append(var_c.detach()), var_t_cache.append(var_t.detach())
 
-            var_t_agg = 1 / ((1 / var_t) + torch.sum(norm_adj.unsqueeze(-2) ** 2 / var_c.unsqueeze(1), dim=-3))
-            mu_t_agg = var_t_agg * (
-                        mu_t / var_t + torch.sum(norm_adj.unsqueeze(-2) ** 2 * r_c.unsqueeze(1) / var_c.unsqueeze(1), dim=2))
-            dists += [Normal(mu_t_agg, torch.sqrt(var_t_agg))]
-            z += [dists[-1].rsample()] if training else [dists[-1].mean]
+            # Add epsilon for numerical stability
+            var_t = torch.clamp(var_t, min=eps)
+            var_c = torch.clamp(var_c, min=eps)
+            
+            inv_var_sum = (1 / var_t) + torch.sum(norm_adj.unsqueeze(-2) ** 2 / var_c.unsqueeze(1), dim=-3)
+            var_t_agg = torch.clamp(1 / (inv_var_sum + eps), min=eps)
+            
+            mu_terms = mu_t / var_t + torch.sum(norm_adj.unsqueeze(-2) ** 2 * r_c.unsqueeze(1) / var_c.unsqueeze(1), dim=2)
+            mu_t_agg = var_t_agg * mu_terms
+            
+            # Replace any NaN values
+            mu_t_agg = torch.where(torch.isnan(mu_t_agg), torch.zeros_like(mu_t_agg), mu_t_agg)
+            var_t_agg = torch.where(torch.isnan(var_t_agg), torch.ones_like(var_t_agg) * eps, var_t_agg)
+            dists += [Normal(mu_t_agg, torch.sqrt(torch.clamp(var_t_agg, min=eps)))]
+            z += [dists[-1].rsample()] if training else [dists[-1].mean.detach()]
 
         return z, dists, var_c_cache, var_t_cache
 

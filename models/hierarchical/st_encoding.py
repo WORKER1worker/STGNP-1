@@ -73,7 +73,7 @@ class Deterministic(nn.Module):
             context = self.tcn[i](context)
 
             # side information
-            if x_target is not None:
+            if x_target is not None and hasattr(self, 'side_encoding'):
                 x_target = self.side_encoding[i](x_target)
                 target = target + x_target
                 x_context = self.side_encoding[i](x_context)
