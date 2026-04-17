@@ -1,0 +1,11 @@
+loading data...
+device: cuda:0
+test_x: (18, 58738, 5, 1)	test_y: (18, 58738, 1)
+trainable parameters: 219,457
+model restored!
+overall test_rmse: 0.061, test_mae: 0.049, test_mape: 0.492, test_r2: 0.681
+station metrics saved: checkpoints/SM/spfs_SM_SM_NQ_20260415T222320/analysis_predict_full/station_metrics.csv
+predictions csv saved: checkpoints/SM/spfs_SM_SM_NQ_20260415T222320/analysis_predict_full/predictions_structured.csv
+station figures dir: checkpoints/SM/spfs_SM_SM_NQ_20260415T222320/analysis_predict_full/station_figures
+analysis report saved: checkpoints/SM/spfs_SM_SM_NQ_20260415T222320/analysis_predict_full/analysis_report.txt
+total time: 0.3min

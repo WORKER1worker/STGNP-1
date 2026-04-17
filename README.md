@@ -75,3 +75,38 @@ If you find our model useful, please cite our paper:
 ```
 ## Questions
 If you have any questions, please contact me at junfengh@u.nus.edu.
+
+## SM_NQ Standalone SPFS Method
+This repository now also includes a standalone SPFS-style method (independent from the original STGNP training framework):
+
+- `train_spfs.py`: train + validation + test in one script.
+- `test_spfs.py`: standalone checkpoint evaluation.
+- `spfs_utils.py`: data loading, relation construction, and metrics.
+- `spfs_model.py`: PyTorch implementation of the SP+FS architecture.
+
+Default data paths are configured for SM_NQ:
+
+- `data/dataset/SM_NQ/SM_NQ-30-minutes_05cm.csv`
+- `data/dataset/SM_NQ/Stations_information_NAQU.csv`
+- `dataset/SM_NQ/test_nodes.npy`
+
+Train:
+```bash
+chmod u+x train_spfs.sh
+./train_spfs.sh
+```
+
+Or run directly:
+```bash
+python train_spfs.py --epochs 100 --h 24 --K 5 --T 48 --d 64 --gpu_id 0
+```
+
+Force CPU:
+```bash
+python train_spfs.py --epochs 100 --h 24 --K 5 --T 48 --d 64 --cpu
+```
+
+Standalone test:
+```bash
+python test_spfs.py --model_file checkpoints/SM/<your_spfs_run>/best_model.pt --gpu_id 0
+```

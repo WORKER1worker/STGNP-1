@@ -1,0 +1,30 @@
+loading data...
+train_x: (38, 109644, 5, 1)	train_y: (38, 109644, 1)
+val_x:   (38, 27411, 5, 1)	val_y:   (38, 27411, 1)
+test_x:  (18, 58738, 5, 1)	test_y:  (18, 58738, 1)
+mean: 0.2015, std: 0.1216
+total trainable parameters: 219,457
+**** training model ****
+2026-04-15 20:57:38 | epoch: 001/100, train_time: 112.23s, train_loss: 0.0054, val_time: 4.75s, val_loss: 0.0039
+val loss decrease from inf to 0.0039, saving model to checkpoints/SM/spfs_SM_SM_NQ_20260415T205539/best_model.pt
+2026-04-15 20:59:39 | epoch: 002/100, train_time: 116.84s, train_loss: 0.0050, val_time: 4.69s, val_loss: 0.0039
+val loss decrease from 0.0039 to 0.0039, saving model to checkpoints/SM/spfs_SM_SM_NQ_20260415T205539/best_model.pt
+2026-04-15 21:01:46 | epoch: 003/100, train_time: 121.69s, train_loss: 0.0050, val_time: 4.83s, val_loss: 0.0037
+val loss decrease from 0.0039 to 0.0037, saving model to checkpoints/SM/spfs_SM_SM_NQ_20260415T205539/best_model.pt
+2026-04-15 21:03:47 | epoch: 004/100, train_time: 115.70s, train_loss: 0.0048, val_time: 4.76s, val_loss: 0.0035
+val loss decrease from 0.0037 to 0.0035, saving model to checkpoints/SM/spfs_SM_SM_NQ_20260415T205539/best_model.pt
+2026-04-15 21:05:43 | epoch: 005/100, train_time: 111.66s, train_loss: 0.0046, val_time: 4.70s, val_loss: 0.0035
+2026-04-15 21:07:46 | epoch: 006/100, train_time: 118.18s, train_loss: 0.0045, val_time: 4.72s, val_loss: 0.0037
+2026-04-15 21:09:49 | epoch: 007/100, train_time: 117.99s, train_loss: 0.0043, val_time: 4.80s, val_loss: 0.0036
+2026-04-15 21:11:49 | epoch: 008/100, train_time: 115.17s, train_loss: 0.0042, val_time: 4.74s, val_loss: 0.0036
+2026-04-15 21:13:48 | epoch: 009/100, train_time: 114.37s, train_loss: 0.0041, val_time: 4.76s, val_loss: 0.0036
+2026-04-15 21:15:51 | epoch: 010/100, train_time: 117.71s, train_loss: 0.0039, val_time: 4.76s, val_loss: 0.0035
+2026-04-15 21:17:57 | epoch: 011/100, train_time: 120.59s, train_loss: 0.0038, val_time: 4.98s, val_loss: 0.0036
+2026-04-15 21:20:00 | epoch: 012/100, train_time: 118.25s, train_loss: 0.0038, val_time: 4.78s, val_loss: 0.0035
+2026-04-15 21:22:01 | epoch: 013/100, train_time: 116.19s, train_loss: 0.0037, val_time: 4.67s, val_loss: 0.0038
+2026-04-15 21:23:58 | epoch: 014/100, train_time: 112.13s, train_loss: 0.0036, val_time: 4.70s, val_loss: 0.0038
+early stop at epoch: 14
+training finished, average train time: 116.336s, average val time: 4.759s, min val loss: 0.0035
+**** testing model ****
+test_rmse: 0.061, test_mae: 0.049, test_mape: 0.492, test_r2: 0.681
+total time: 28.5min

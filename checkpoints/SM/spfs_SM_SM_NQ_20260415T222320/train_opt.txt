@@ -1,0 +1,17 @@
+h: 24
+K: 5
+T: 48
+d: 64
+lr: 0.001
+epochs: 50
+patience: 10
+seed: 2026
+cpu: False
+gpu_id: 0
+data_file: data/dataset/SM_NQ/SM_NQ-30-minutes_05cm.csv
+station_file: data/dataset/SM_NQ/Stations_information_NAQU.csv
+test_file: dataset/SM_NQ/test_nodes.npy
+max_intervals: 0
+checkpoints_dir: checkpoints
+dataset_name: SM
+exp_name: SM_NQ
