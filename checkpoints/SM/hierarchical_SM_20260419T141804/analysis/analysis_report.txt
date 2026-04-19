@@ -1,0 +1,44 @@
+================================================================================
+模型测试与结果分析报告
+================================================================================
+生成时间: 2026-04-19 15:13:32
+数据集: SM
+模型: hierarchical
+预测属性: SM
+checkpoint目录: ./checkpoints/SM/hierarchical_SM_20260419T141804
+总耗时: 4.90 秒
+
+[一] 数据映射来源
+test_nodes来源: dataset/SM_NQ_selected35/test_nodes.npy
+站点元数据来源: <dataset.station_ids>
+
+[二] 样本统计
+保留样本数: 112815
+过滤样本数: 24105
+
+[三] 总体指标
+总体 MAE: 0.051307
+总体 RMSE: 0.063800
+总体 R2: 0.747643
+
+[四] 模型内部 metrics（来自 model.compute_metrics）
+MAE: 0.051307
+RMSE: 0.063800
+MAPE: 0.319405
+
+[五] 分站点指标（前20条，按 MAE 降序）
+station_id  target_station_index  original_node_index  sample_count      MAE     RMSE        R2
+      BC02                     2                    0         10543 0.129431 0.136155 -0.373636
+    MS3494                     3                   17         18558 0.052485 0.061292  0.826883
+       P10                     5                   32         18558 0.047331 0.053053  0.844452
+    MS3576                     4                   24         14807 0.045274 0.052217  0.018633
+      BC05                     0                    3         18459 0.043696 0.055404  0.422986
+      CD07                     1                   11         18501 0.038331 0.040897  0.871702
+        P2                     6                   34         13389 0.028758 0.032134  0.864450
+
+[六] 产物路径
+结构化CSV: ./checkpoints/SM/hierarchical_SM_20260419T141804/analysis/predictions_structured.csv
+趋势图: ./checkpoints/SM/hierarchical_SM_20260419T141804/analysis/trend_prediction_vs_truth_part01.png; ./checkpoints/SM/hierarchical_SM_20260419T141804/analysis/trend_prediction_vs_truth_part02.png
+误差图: ./checkpoints/SM/hierarchical_SM_20260419T141804/analysis/error_analysis.png
+分站点指标CSV: ./checkpoints/SM/hierarchical_SM_20260419T141804/analysis/station_metrics.csv
+================================================================================

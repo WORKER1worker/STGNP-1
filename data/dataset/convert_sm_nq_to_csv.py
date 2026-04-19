@@ -197,26 +197,17 @@ def convert_station_xlsx_to_csv(
     return merged_stations, missing_station_rows
 
 
-def main():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    sm_nq_dir = os.path.join(script_dir, 'SM_NQ')
-
-    txt_path = os.path.join(sm_nq_dir, 'SM_NQ-30-minutes_05cm.txt')
-    xlsx_path = os.path.join(sm_nq_dir, 'Stations_information_NAQU.xlsx')
-
-    soil_csv = os.path.join(sm_nq_dir, 'SM_NQ-30-minutes_05cm.csv')
-    station_csv = os.path.join(sm_nq_dir, 'Stations_information_NAQU.csv')
-    merge_report_csv = os.path.join(sm_nq_dir, 'SM_NQ_merge_report.csv')
-    missing_station_report_csv = os.path.join(sm_nq_dir, 'SM_NQ_missing_station_report.csv')
-
+def process_single_soil_file(
+    txt_path: str,
+    xlsx_path: str,
+    soil_csv: str,
+    station_csv: str,
+    merge_report_csv: str,
+    missing_station_report_csv: str,
+) -> Dict[str, str]:
+    """Process one depth TXT file with station merge and missing-station cleanup."""
     if not os.path.exists(txt_path):
         raise FileNotFoundError(f'TXT file not found: {txt_path}')
-    if not os.path.exists(xlsx_path):
-        raise FileNotFoundError(f'XLSX file not found: {xlsx_path}')
-
-    print('=' * 72)
-    print('SM_NQ conversion and supplementary station merge')
-    print('=' * 72)
 
     _, station_ids = convert_soil_txt_to_csv(
         txt_path=txt_path,
@@ -249,14 +240,89 @@ def main():
         encoding='utf-8',
     )
 
+    return {
+        'soil_csv': soil_csv,
+        'station_csv': station_csv,
+        'merge_report_csv': merge_report_csv,
+        'missing_station_report_csv': missing_station_report_csv,
+    }
+
+
+def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    sm_nq_depths_dir = os.path.join(script_dir, 'SM_NQ_depths')
+    sm_nq_dir = os.path.join(script_dir, 'SM_NQ')
+
+    xlsx_candidates = [
+        os.path.join(sm_nq_depths_dir, 'Stations_information_NAQU.xlsx'),
+        os.path.join(sm_nq_dir, 'Stations_information_NAQU.xlsx'),
+    ]
+    xlsx_path = next((p for p in xlsx_candidates if os.path.exists(p)), None)
+    if xlsx_path is None:
+        raise FileNotFoundError(f'XLSX file not found in candidates: {xlsx_candidates}')
+
+    txt_files = []
+    if os.path.isdir(sm_nq_depths_dir):
+        txt_files = [
+            os.path.join(sm_nq_depths_dir, name)
+            for name in os.listdir(sm_nq_depths_dir)
+            if name.endswith('.txt')
+        ]
+
+    if not txt_files:
+        fallback_txt = os.path.join(sm_nq_dir, 'SM_NQ-30-minutes_05cm.txt')
+        if os.path.exists(fallback_txt):
+            txt_files = [fallback_txt]
+        else:
+            raise FileNotFoundError('No TXT files found in SM_NQ_depths or fallback SM_NQ directory')
+
+    def txt_sort_key(path: str):
+        name = os.path.basename(path)
+        match = re.search(r'_(\d+)cm\.txt$', name)
+        if match:
+            return int(match.group(1))
+        return 9999
+
+    txt_files = sorted(txt_files, key=txt_sort_key)
+
+    print('=' * 72)
+    print('SM_NQ conversion and supplementary station merge (batch mode)')
+    print('=' * 72)
+
+    generated_outputs: List[Dict[str, str]] = []
+    for txt_path in txt_files:
+        txt_dir = os.path.dirname(txt_path)
+        base_name = os.path.splitext(os.path.basename(txt_path))[0]
+        depth_match = re.search(r'_(\d+cm)$', base_name)
+        depth_tag = depth_match.group(1) if depth_match else 'unknown'
+
+        soil_csv = os.path.join(txt_dir, f'{base_name}.csv')
+        station_csv = os.path.join(txt_dir, f'Stations_information_NAQU_{depth_tag}.csv')
+        merge_report_csv = os.path.join(txt_dir, f'{base_name}_merge_report.csv')
+        missing_station_report_csv = os.path.join(txt_dir, f'{base_name}_missing_station_report.csv')
+
+        print('-' * 72)
+        print(f'Processing: {txt_path}')
+        generated_outputs.append(
+            process_single_soil_file(
+                txt_path=txt_path,
+                xlsx_path=xlsx_path,
+                soil_csv=soil_csv,
+                station_csv=station_csv,
+                merge_report_csv=merge_report_csv,
+                missing_station_report_csv=missing_station_report_csv,
+            )
+        )
+
     print('=' * 72)
     print('Done')
     print('=' * 72)
     print('Generated files:')
-    print(f'  - {soil_csv}')
-    print(f'  - {station_csv}')
-    print(f'  - {merge_report_csv}')
-    print(f'  - {missing_station_report_csv}')
+    for outputs in generated_outputs:
+        print(f"  - {outputs['soil_csv']}")
+        print(f"  - {outputs['station_csv']}")
+        print(f"  - {outputs['merge_report_csv']}")
+        print(f"  - {outputs['missing_station_report_csv']}")
 
 
 if __name__ == '__main__':

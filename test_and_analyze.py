@@ -629,41 +629,78 @@ def generate_trend_plot(trend_df: pd.DataFrame, output_path: str, top_k: int, us
     if trend_df.empty:
         print("[绘图] 趋势图数据为空，跳过")
         return
+def generate_trend_plot(
+    trend_df: pd.DataFrame,
+    output_path: str,
+    top_k: int,
+    use_cn_font: bool,
+) -> List[str]:
+    """按站点分页绘制趋势图，每张图固定 2x2（四站点）。"""
+    if trend_df.empty:
+        print("[绘图] 趋势图数据为空，跳过")
+        return []
 
-    station_order = trend_df["station_id"].value_counts().head(top_k).index.tolist()
+    # 输出全部站点；top_k 参数保留以兼容历史命令行签名。
+    station_order = trend_df["station_id"].value_counts().index.tolist()
     if not station_order:
         print("[绘图] 无可用站点，跳过趋势图")
-        return
+        return []
 
-    n = len(station_order)
+    base, ext = os.path.splitext(output_path)
+    if ext == "":
+        ext = ".png"
+
+    per_figure = 4
     ncols = 2
-    nrows = int(math.ceil(n / ncols))
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(16, 4.5 * nrows), squeeze=False)
+    nrows = 2
+    total_pages = int(math.ceil(len(station_order) / float(per_figure)))
+    saved_paths: List[str] = []
 
-    for i, station_id in enumerate(station_order):
-        r, c = divmod(i, ncols)
-        ax = axes[r][c]
-        sdf = trend_df[trend_df["station_id"] == station_id].sort_values("timestamp")
+    for page_idx in range(total_pages):
+        start = page_idx * per_figure
+        end = min(start + per_figure, len(station_order))
+        page_stations = station_order[start:end]
 
-        x = np.arange(len(sdf))
-        ax.plot(x, sdf["true_value"].values, label=tr("真实值", "Ground Truth", use_cn_font), linewidth=1.4)
-        ax.plot(x, sdf["pred_value"].values, label=tr("预测值", "Prediction", use_cn_font), linewidth=1.4, alpha=0.9)
-        ax.set_title(tr(f"站点 {station_id}：预测值 vs 真实值", f"Station {station_id}: Prediction vs Ground Truth", use_cn_font))
-        ax.set_xlabel(tr("时间索引", "Time Index", use_cn_font))
-        ax.set_ylabel(tr("数值", "Value", use_cn_font))
-        ax.grid(alpha=0.25)
-        ax.legend(loc="best")
+        fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(16, 9), squeeze=False)
+        flat_axes = axes.reshape(-1)
 
-    # 去掉空子图
-    for j in range(n, nrows * ncols):
-        r, c = divmod(j, ncols)
-        fig.delaxes(axes[r][c])
+        for ax_idx, station_id in enumerate(page_stations):
+            ax = flat_axes[ax_idx]
+            sdf = trend_df[trend_df["station_id"] == station_id].sort_values("timestamp")
+            x = np.arange(len(sdf))
+            ax.plot(x, sdf["true_value"].values, label=tr("真实值", "Ground Truth", use_cn_font), linewidth=1.4)
+            ax.plot(x, sdf["pred_value"].values, label=tr("预测值", "Prediction", use_cn_font), linewidth=1.4, alpha=0.9)
+            ax.set_title(tr(f"站点 {station_id}：预测值 vs 真实值", f"Station {station_id}: Prediction vs Ground Truth", use_cn_font))
+            ax.set_xlabel(tr("时间索引", "Time Index", use_cn_font))
+            ax.set_ylabel(tr("数值", "Value", use_cn_font))
+            ax.grid(alpha=0.25)
+            ax.legend(loc="best")
 
-    fig.suptitle(tr("测试集预测趋势对比", "Prediction Trend on Test Set", use_cn_font), fontsize=14)
-    fig.tight_layout(rect=[0, 0.02, 1, 0.98])
-    fig.savefig(output_path, dpi=180)
-    plt.close(fig)
-    print(f"[绘图] 趋势图已保存: {output_path}")
+        for ax_idx in range(len(page_stations), per_figure):
+            fig.delaxes(flat_axes[ax_idx])
+
+        fig.suptitle(
+            tr(
+                f"测试集预测趋势对比（第 {page_idx + 1}/{total_pages} 页）",
+                f"Prediction Trend on Test Set (Page {page_idx + 1}/{total_pages})",
+                use_cn_font,
+            ),
+            fontsize=14,
+        )
+        fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+
+        if total_pages == 1:
+            page_path = f"{base}{ext}"
+        else:
+            page_path = f"{base}_part{page_idx + 1:02d}{ext}"
+        fig.savefig(page_path, dpi=180)
+        plt.close(fig)
+        saved_paths.append(page_path)
+
+    print(f"[绘图] 趋势图已保存，共 {len(saved_paths)} 张")
+    for p in saved_paths:
+        print(f"[绘图]   - {p}")
+    return saved_paths
 
 
 def generate_error_plots(sample_df: pd.DataFrame, station_metrics_df: pd.DataFrame, output_path: str, use_cn_font: bool) -> None:
@@ -744,7 +781,7 @@ def write_report(
     mapping_source: str,
     station_meta_source: str,
     csv_path: str,
-    trend_plot_path: str,
+    trend_plot_paths: Sequence[str],
     error_plot_path: str,
     start_time: float,
 ) -> None:
@@ -793,7 +830,10 @@ def write_report(
 
     lines.append("[六] 产物路径")
     lines.append(f"结构化CSV: {csv_path}")
-    lines.append(f"趋势图: {trend_plot_path}")
+    if trend_plot_paths:
+        lines.append(f"趋势图: {'; '.join(trend_plot_paths)}")
+    else:
+        lines.append("趋势图: 未生成")
     lines.append(f"误差图: {error_plot_path}")
     lines.append(f"分站点指标CSV: {station_metrics_path}")
     lines.append("=" * 80)
@@ -901,14 +941,14 @@ def main() -> None:
     print("[6/6] 绘图并输出报告")
     selected_stations = []
     if not station_metrics_df.empty:
-        selected_stations = station_metrics_df.sort_values("sample_count", ascending=False)["station_id"].head(analysis_args.trend_top_k_stations).astype(str).tolist()
+        selected_stations = station_metrics_df.sort_values("sample_count", ascending=False)["station_id"].astype(str).tolist()
 
     trend_df = collect_trend_data_from_csv(
         csv_path=csv_path,
         station_ids=selected_stations,
         max_points_per_station=analysis_args.max_trend_points_per_station,
     )
-    generate_trend_plot(trend_df, trend_plot_path, analysis_args.trend_top_k_stations, use_cn_font)
+    trend_plot_paths = generate_trend_plot(trend_df, trend_plot_path, analysis_args.trend_top_k_stations, use_cn_font)
     generate_error_plots(sample_df, station_metrics_df, error_plot_path, use_cn_font)
 
     write_report(
@@ -922,7 +962,7 @@ def main() -> None:
         mapping_source=mapping_source,
         station_meta_source=station_meta_source,
         csv_path=csv_path,
-        trend_plot_path=trend_plot_path,
+        trend_plot_paths=trend_plot_paths,
         error_plot_path=error_plot_path,
         start_time=start,
     )
