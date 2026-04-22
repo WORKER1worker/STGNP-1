@@ -39,7 +39,7 @@ class BaseDataset(data.Dataset, ABC):
         self.opt = opt
         self.time_division = {
             'train': [0.0, 0.7],
-            'val': [0.8, 0.9],
+            'val': [0.7, 0.9],
             'test': [0.9, 1.0]}
         self.raw_data = {}
         self.A = None
