@@ -1,3 +1,5 @@
 data/dataset/SM_NQ/
 data/dataset/SM_NQ_depths/
-dataset/SM/processed_raw.csv
+dataset/SM/processed_raw.csvcheckpoints/
+*.pkl
+*.csv
