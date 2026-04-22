@@ -1,0 +1,88 @@
+================================================================================
+模型测试与结果分析报告
+================================================================================
+生成时间: 2026-04-22 11:10:21
+数据集: SM
+模型: hierarchical
+预测属性: SM
+checkpoint目录: ./checkpoints/SM/hierarchical_SM_20260421T120701
+总耗时: 34.12 秒
+
+[一] 数据映射来源
+test_nodes来源: <dataset.test_node_index>
+站点元数据来源: <dataset.station_ids>
+
+[二] 样本统计
+保留样本数: 760613
+过滤样本数: 647707
+
+[三] 总体指标
+总体 MAE: 0.046664
+总体 RMSE: 0.058933
+总体 R2: 0.530753
+
+[四] 模型内部 metrics（来自 model.compute_metrics）
+MAE: 0.046664
+RMSE: 0.058933
+MAPE: 0.546211
+
+[五] 分站点指标（全量，按站点分组并按深度排序）
+ station_id base_station_id depth_name  target_station_index  original_node_index  sample_count      MAE     RMSE          R2
+     C2@5cm              C2        5cm                     1                    9         12996 0.038771 0.042823    0.840175
+    C2@20cm              C2       20cm                    37                  121         12996 0.035278 0.040851   -0.214206
+     C3@5cm              C3        5cm                     2                   10         18606 0.073306 0.092011   -1.969126
+    C3@10cm              C3       10cm                    20                   66         18606 0.053432 0.069349   -1.500865
+     C4@5cm              C4        5cm                     3                   11         18606 0.081806 0.087896   -0.140511
+    C4@10cm              C4       10cm                    21                   67         18606 0.100003 0.105795   -6.865577
+    C4@20cm              C4       20cm                    39                  123         18606 0.045404 0.050201   -1.186412
+    C4@40cm              C4       40cm                    57                  179         18606 0.075383 0.077433   -3.889802
+   CD01@5cm            CD01        5cm                     4                   12         18497 0.061222 0.079415    0.635272
+  CD01@20cm            CD01       20cm                    40                  124         12621 0.080283 0.090490   -0.584499
+  CD01@40cm            CD01       40cm                    58                  180         18497 0.085017 0.093652   -1.354356
+   CD03@5cm            CD03        5cm                     5                   14           325 0.135805 0.137011  -90.983096
+  CD03@10cm            CD03       10cm                    23                   70           324 0.031489 0.034607   -0.794409
+  CD03@20cm            CD03       20cm                    41                  126           132 0.040936 0.041063 -583.767890
+   CD07@5cm            CD07        5cm                     6                   18         18501 0.036649 0.042015    0.864587
+  CD07@20cm            CD07       20cm                    42                  130         18503 0.052625 0.058254    0.178044
+ MS3488@5cm          MS3488        5cm                     8                   26         16699 0.087986 0.095917    0.011394
+MS3488@10cm          MS3488       10cm                    26                   82         18545 0.030448 0.033413    0.747633
+MS3488@20cm          MS3488       20cm                    44                  138         18545 0.023442 0.027486    0.660678
+MS3488@40cm          MS3488       40cm                    62                  194         18545 0.050289 0.052944   -0.686370
+ MS3513@5cm          MS3513        5cm                     9                   30         18366 0.028805 0.038403    0.846725
+MS3513@10cm          MS3513       10cm                    27                   86         18366 0.047397 0.053315    0.494668
+MS3513@20cm          MS3513       20cm                    45                  142         17978 0.089267 0.092993   -6.382546
+MS3513@40cm          MS3513       40cm                    63                  198            33 0.161435 0.201212    0.009710
+ MS3518@5cm          MS3518        5cm                    10                   31         18601 0.032161 0.037384    0.905331
+MS3518@10cm          MS3518       10cm                    28                   87         18601 0.025266 0.029109    0.889268
+MS3518@20cm          MS3518       20cm                    46                  143         18601 0.018164 0.023175    0.874555
+MS3518@40cm          MS3518       40cm                    64                  199         18601 0.055468 0.057795   -0.442607
+ MS3533@5cm          MS3533        5cm                    11                   34         18606 0.029643 0.038568    0.911432
+MS3533@10cm          MS3533       10cm                    29                   90         18606 0.042790 0.046887    0.584784
+MS3533@20cm          MS3533       20cm                    47                  146         18606 0.019061 0.024232    0.769988
+MS3533@40cm          MS3533       40cm                    65                  202         18606 0.012631 0.015849    0.852679
+ MS3545@5cm          MS3545        5cm                    12                   35          3845 0.086148 0.088177  -13.472588
+MS3545@10cm          MS3545       10cm                    30                   91          5700 0.049522 0.053071   -1.180969
+MS3545@20cm          MS3545       20cm                    48                  147          5700 0.026128 0.040224   -0.689363
+MS3545@40cm          MS3545       40cm                    66                  203          5700 0.032615 0.046400   -0.344218
+ MS3603@5cm          MS3603        5cm                    14                   40         18624 0.018869 0.027664    0.885841
+MS3603@10cm          MS3603       10cm                    32                   96         18623 0.023510 0.027612    0.823038
+MS3603@20cm          MS3603       20cm                    50                  152         18624 0.026395 0.034198    0.603018
+MS3603@40cm          MS3603       40cm                    68                  208         18624 0.081880 0.083677   -0.346186
+ MS3620@5cm          MS3620        5cm                    15                   42         18623 0.023506 0.027520    0.854938
+MS3620@10cm          MS3620       10cm                    33                   98         16954 0.058378 0.062158   -0.813499
+MS3620@20cm          MS3620       20cm                    51                  154         18623 0.025933 0.032193    0.367910
+MS3620@40cm          MS3620       40cm                    69                  210         18623 0.018007 0.026530    0.657768
+ MS3627@5cm          MS3627        5cm                    16                   43         18625 0.017656 0.023712    0.901217
+MS3627@10cm          MS3627       10cm                    34                   99         18625 0.032694 0.038513    0.744742
+MS3627@20cm          MS3627       20cm                    52                  155         18625 0.080218 0.084718   -1.468723
+MS3627@40cm          MS3627       40cm                    70                  211         18625 0.065980 0.072761   -1.543788
+     P8@5cm              P8        5cm                    17                   54          5639 0.084384 0.086443   -4.202070
+    P8@10cm              P8       10cm                    35                  110          5639 0.027025 0.034600    0.578042
+    P8@20cm              P8       20cm                    53                  166          5639 0.006777 0.009294    0.289672
+
+[六] 产物路径
+结构化CSV: checkpoints/SM/hierarchical_SM_20260421T120701/analysis/predictions_structured.csv
+趋势图: checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_MS3488.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_MS3627.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_MS3603.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_C4.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_MS3533.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_MS3518.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_MS3620.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_MS3545.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_MS3513.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_CD01.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_P8.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_C2.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_C3.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_CD07.png; checkpoints/SM/hierarchical_SM_20260421T120701/analysis/trend_prediction_vs_truth_CD03.png
+误差图: checkpoints/SM/hierarchical_SM_20260421T120701/analysis/error_analysis.png
+分站点指标CSV: checkpoints/SM/hierarchical_SM_20260421T120701/analysis/station_metrics.csv
+================================================================================

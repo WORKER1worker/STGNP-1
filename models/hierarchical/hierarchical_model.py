@@ -1,6 +1,7 @@
 from models import init_net, BaseModel
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
 from torch.distributions.kl import kl_divergence
 
 from models.hierarchical.inference_model import InferenceModel
@@ -38,10 +39,14 @@ class HierarchicalModel(BaseModel):
         # <BaseModel.compute_metrics> compute metrics for current batch
         # <BaseModel.get_current_metrics> compute and return mean of metrics, clear evaluation cache for next evaluation
         self.metric_names = ['MAE', 'RMSE', 'MAPE']
+        self.graph_mode = getattr(opt, 'sm_graph_mode', 'channel')
+        self.learn_vertical_weight = bool(getattr(opt, 'sm_learn_vertical_weight', 1))
 
         # define networks. The model variable name should begin with 'self.net'
         model_config['input_dim'] = opt.y_dim
         model_config['covariate_dim'] = opt.covariate_dim
+        model_config['enable_vertical_weight'] = self.graph_mode == 'joint_4n' and self.learn_vertical_weight
+        model_config['vertical_weight_init'] = float(getattr(opt, 'sm_vertical_init', 1.0))
         self.netHierarchicalNP = HierarchicalNP(model_config)
         self.netHierarchicalNP = init_net(self.netHierarchicalNP, opt.init_type, opt.init_gain, opt.gpu_ids)  # initialize parameters, move to cuda if applicable
 
@@ -69,14 +74,33 @@ class HierarchicalModel(BaseModel):
         self.pred_target = input['pred_target'].transpose(2, 3).to(self.device)
 
         self.adj = input['adj'].to(self.device)
-        self.missing_mask_context = input['missing_mask_context'].transpose(1, 2).to(self.device)
-        self.missing_mask_target = input['missing_mask_target'].transpose(1, 2).to(self.device)
+        self.adj_horizontal = input['adj_horizontal'].to(self.device) if 'adj_horizontal' in input else None
+        self.adj_vertical = input['adj_vertical'].to(self.device) if 'adj_vertical' in input else None
+
+        # Keep channel-aware masks for loss/metrics: [batch, time, num_node, d_y].
+        self.missing_mask_context = input['missing_mask_context'].to(self.device)
+        self.missing_mask_target = input['missing_mask_target'].to(self.device)
+        if self.missing_mask_context.dim() == 3:
+            self.missing_mask_context = self.missing_mask_context.unsqueeze(-1)
+        if self.missing_mask_target.dim() == 3:
+            self.missing_mask_target = self.missing_mask_target.unsqueeze(-1)
+
+        self.missing_mask_context = self.missing_mask_context.permute(0, 2, 1, 3)
+        self.missing_mask_target = self.missing_mask_target.permute(0, 2, 1, 3)
+
+        # Graph aggregation uses node-level missing information.
+        if self.graph_mode == 'joint_4n':
+            self.missing_mask_context_node = self.missing_mask_context.squeeze(-1)
+        else:
+            # A node is treated as missing only when all channels are missing.
+            self.missing_mask_context_node = self.missing_mask_context.min(dim=-1).values
         self.bach_time = input['time']
 
     def forward(self, training=True):
         self.p_y_pred, self.q_dists, self.p_dists, self.var_c, self.var_t = \
             self.netHierarchicalNP(self.feat_context, self.pred_context, self.feat_target,
-                                   self.pred_target if training else None, self.adj, self.missing_mask_context, training)
+                                   self.pred_target if training else None, self.adj, self.missing_mask_context_node, training,
+                                   adj_horizontal=self.adj_horizontal, adj_vertical=self.adj_vertical)
 
     def backward(self):
         # loss values expected to be displayed should begin with 'self.loss'
@@ -88,8 +112,22 @@ class HierarchicalModel(BaseModel):
             self.kl_flag = True
 
     def cache_results(self):
-        self._add_to_cache('missing_target', self.missing_mask_target.reshape([-1, self.missing_mask_target.shape[2]]))
-        self._add_to_cache('missing_context', self.missing_mask_context.reshape([-1, self.missing_mask_context.shape[2]]))
+        self._add_to_cache(
+            'missing_target',
+            self.missing_mask_target.reshape([
+                -1,
+                self.missing_mask_target.shape[2],
+                self.missing_mask_target.shape[3],
+            ])
+        )
+        self._add_to_cache(
+            'missing_context',
+            self.missing_mask_context.reshape([
+                -1,
+                self.missing_mask_context.shape[2],
+                self.missing_mask_context.shape[3],
+            ])
+        )
 
         self._add_to_cache('y_target', self.pred_target.permute(0, 3, 1, 2).flatten(0, 1), reverse_norm=True)  # [time, num_m, dy]
         self._add_to_cache('y_context', self.pred_context.permute(0, 3, 1, 2).flatten(0, 1), reverse_norm=True)  # [time, num_n, dy]
@@ -115,34 +153,40 @@ class HierarchicalModel(BaseModel):
             y_target: ground truth [batch, num_m, dy, time]
             q_dists: distributions of posterior variables list ([batch, num_m, dz, time] * num_layers)
             p_dists: distributions of prior variables list ([batch, num_m, dz, time] * num_layers)
-            missing_index_target: index the missing nodes (1: missing) [batch, time, num_m]
+            missing_index_target: index the missing nodes (1: missing) [batch, time, num_m, d_y]
         Returns:
             log_likelihood: float
             kl_divergence:  float
         """
         assert p_y_pred.mean.shape == y_target.shape
-        # mean for 1-st, 2-nd dimension, sum for 3-th, 4-th dimension
-        valid_index_target = (1 - missing_index_target.permute([0, 2, 1]).unsqueeze(2)).float()
+
+        # Align missing mask with y_target: [batch, num_m, d_y, time].
+        valid_index_target = (1 - missing_index_target.permute([0, 2, 3, 1])).float()
         finite_index_target = torch.isfinite(y_target).float()
         valid_index_target = valid_index_target * finite_index_target
+        # Latent KL is node/time-wise, not channel-wise.
+        valid_index_latent = valid_index_target.max(dim=2, keepdim=True).values
 
         # Normal.log_prob validates every element in value, so replace invalid targets first.
         safe_y_target = torch.where(torch.isfinite(y_target), y_target, p_y_pred.mean.detach())
         time = valid_index_target.shape[-1]
         # rescale the loss at time dimension, as the time dimension use sum
-        valid_count = torch.sum(valid_index_target, dim=-1, keepdim=True).clamp_min(1.0)
-        time_rescale = time / valid_count
+        valid_count_target = torch.sum(valid_index_target, dim=-1, keepdim=True).clamp_min(1.0)
+        time_rescale_target = time / valid_count_target
 
         log_likelihood = p_y_pred.log_prob(safe_y_target) * valid_index_target
-        log_likelihood = log_likelihood / time_rescale
+        log_likelihood = log_likelihood / time_rescale_target
         log_likelihood = log_likelihood.mean(dim=[0, 1]).sum()
 
-        kl = kl_divergence(q_dists[0], p_dists[0]) * valid_index_target
-        kl = kl / time_rescale
+        valid_count_latent = torch.sum(valid_index_latent, dim=-1, keepdim=True).clamp_min(1.0)
+        time_rescale_latent = time / valid_count_latent
+
+        kl = kl_divergence(q_dists[0], p_dists[0]) * valid_index_latent
+        kl = kl / time_rescale_latent
         kl = kl.mean(dim=[0, 1]).sum()
         for i in range(1, len(p_dists)):
-            kl_ = kl_divergence(q_dists[i], p_dists[i]) * valid_index_target
-            kl_ = kl_ / time_rescale
+            kl_ = kl_divergence(q_dists[i], p_dists[i]) * valid_index_latent
+            kl_ = kl_ / time_rescale_latent
             kl += kl_.mean(dim=[0, 1]).sum()
         return -log_likelihood, kl
 
@@ -164,20 +208,37 @@ class HierarchicalNP(nn.Module):
         # observation path
         self.observation = ObservationModel(sum(model_config['latent_channels']),
                                             model_config['input_dim'], model_config['observation_hidden_dim'], model_config['num_observation_layers'])
+        self.enable_vertical_weight = bool(model_config.get('enable_vertical_weight', False))
+        if self.enable_vertical_weight:
+            init_weight = float(model_config.get('vertical_weight_init', 1.0))
+            init_tensor = torch.tensor(max(init_weight, 1e-4), dtype=torch.float32)
+            self.vertical_weight_raw = nn.Parameter(torch.log(torch.exp(init_tensor) - 1.0))
 
-    def forward(self, x_context, y_context, x_target, y_target, adj, missing_index_context, training):
+    def get_vertical_weight(self):
+        if not self.enable_vertical_weight:
+            return None
+        return F.softplus(self.vertical_weight_raw)
+
+    def forward(self, x_context, y_context, x_target, y_target, adj, missing_index_context, training,
+                adj_horizontal=None, adj_vertical=None):
+        if self.enable_vertical_weight and adj_horizontal is not None and adj_vertical is not None:
+            vertical_weight = self.get_vertical_weight()
+            adj_used = adj_horizontal + vertical_weight * adj_vertical
+        else:
+            adj_used = adj
+
         # generative model (conditional prior)
             # the name posterior is weird for context set. This is because we have y for the set, so that we can use this 'posterior encoder'.
             # However, it is still conditional prior theoretically in this sense
-        p_d_c, p_d_t = self.deter(x_context, y_context, x_target, None, adj, missing_index_context)
+        p_d_c, p_d_t = self.deter(x_context, y_context, x_target, None, adj_used, missing_index_context)
         p_context, p_dists, var_c_cache, var_t_cache = self.inference(
-            p_d_c, p_d_t, adj[:, 0], missing_index_context, training=training, use_posterior=False)
+            p_d_c, p_d_t, adj_used[:, 0], missing_index_context, training=training, use_posterior=False)
 
         if y_target is not None:
             # inference model (posterior)
-            d_c, d_t = self.deter(x_context, y_context, x_target, y_target, adj, missing_index_context)
+            d_c, d_t = self.deter(x_context, y_context, x_target, y_target, adj_used, missing_index_context)
             q_target, q_dists, _, _ = self.inference(
-                d_c, d_t, adj[:, 0], missing_index_context, training=training, use_posterior=True)
+                d_c, d_t, adj_used[:, 0], missing_index_context, training=training, use_posterior=True)
 
             # observation model (likelihood)
             p_y_pred = self.observation(q_target)

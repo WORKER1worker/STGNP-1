@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "train.py", line 35, in <module>
+    for i, data in enumerate(dataset):  # inner loop within one epoch
+  File "/root/autodl-tmp/over/STGNP/data/__init__.py", line 85, in __iter__
+    for i, data in enumerate(self.dataloader):
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/utils/data/dataloader.py", line 634, in __next__
+    data = self._next_data()
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/utils/data/dataloader.py", line 678, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/utils/data/_utils/fetch.py", line 51, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/utils/data/_utils/fetch.py", line 51, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/root/autodl-tmp/over/STGNP/data/base_dataset.py", line 77, in __getitem__
+    batch_data = self._fetch_divided_form_data_item(self.raw_data, self.A, index, self.opt.t_len,
+  File "/root/autodl-tmp/over/STGNP/data/base_dataset.py", line 245, in _fetch_divided_form_data_item
+    target_index, context_index = BaseDataset._div_context_target(train_node_index, num_train_target)
+  File "/root/autodl-tmp/over/STGNP/data/base_dataset.py", line 145, in _div_context_target
+    context_index = np.setdiff1d(train_station_index, target_index)
+  File "<__array_function__ internals>", line 200, in setdiff1d
+  File "/root/miniconda3/lib/python3.8/site-packages/numpy/lib/arraysetops.py", line 981, in setdiff1d
+    return ar1[in1d(ar1, ar2, assume_unique=True, invert=True)]
+  File "<__array_function__ internals>", line 200, in in1d
+  File "/root/miniconda3/lib/python3.8/site-packages/numpy/lib/arraysetops.py", line 691, in in1d
+    isin_helper_ar = np.ones(ar2_range + 1, dtype=bool)
+KeyboardInterrupt

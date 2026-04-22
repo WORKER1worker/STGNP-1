@@ -351,6 +351,27 @@ def to_numpy_2d_or_3d(arr: Optional[np.ndarray]) -> Optional[np.ndarray]:
     raise ValueError(f"missing_target 维度应为 2 或 3，当前为 {x.ndim}，shape={x.shape}")
 
 
+def split_station_depth(station_id: str) -> Tuple[str, str]:
+    text = str(station_id)
+    if "@" in text:
+        base, depth = text.rsplit("@", 1)
+        return base, depth
+    return text, ""
+
+
+def depth_sort_key(depth_name: str) -> Tuple[int, str]:
+    text = str(depth_name or "")
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if digits:
+        return int(digits), text
+    return 9999, text
+
+
+def sanitize_filename_token(name: str) -> str:
+    token = "".join(ch if (ch.isalnum() or ch in "-_") else "_" for ch in str(name)).strip("_")
+    return token or "station"
+
+
 def format_timestamp(ts: float) -> str:
     try:
         return datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M:%S")
@@ -485,6 +506,7 @@ def generate_csv_and_stats(
             m = station_mapping[s_idx]
             station_id = str(m["station_id"])
             node_idx = int(m["original_node_index"])
+            base_station_id, depth_name = split_station_depth(station_id)
 
             for f_idx in range(n_feat):
                 true_val = float(y_target[t_idx, s_idx, f_idx])
@@ -504,6 +526,8 @@ def generate_csv_and_stats(
                     "target_station_index": int(s_idx),
                     "original_node_index": node_idx,
                     "station_id": station_id,
+                    "base_station_id": base_station_id,
+                    "depth_name": depth_name,
                     "feature_index": int(f_idx),
                     "true_value": true_val,
                     "pred_value": pred_val,
@@ -565,6 +589,8 @@ def generate_csv_and_stats(
         station_rows.append(
             {
                 "station_id": station_id,
+                "base_station_id": split_station_depth(station_id)[0],
+                "depth_name": split_station_depth(station_id)[1],
                 "target_station_index": st["target_idx"],
                 "original_node_index": st["node_idx"],
                 "sample_count": c,
@@ -593,55 +619,63 @@ def generate_csv_and_stats(
     return summary, station_metrics_df, sample_df, count_info
 
 
-def collect_trend_data_from_csv(
+def collect_station_depth_trend_data_from_csv(
     csv_path: str,
-    station_ids: Sequence[str],
-    max_points_per_station: int,
+    base_station_ids: Sequence[str],
+    max_points_per_depth: int,
 ) -> pd.DataFrame:
-    """从 CSV 分块读取指定站点数据，并按步长下采样用于趋势图。"""
+    """按站点+深度收集趋势绘图数据，保证同站点四个深度可在一张图中展示。"""
     if not os.path.isfile(csv_path):
         return pd.DataFrame()
 
-    station_set = set(station_ids)
-    bucket: Dict[str, List[dict]] = defaultdict(list)
+    station_set = set(str(x) for x in base_station_ids)
+    bucket: Dict[str, Dict[str, List[dict]]] = defaultdict(lambda: defaultdict(list))
 
     for chunk in pd.read_csv(csv_path, chunksize=200000):
-        chunk = chunk[chunk["station_id"].isin(station_set)]
+        if "base_station_id" not in chunk.columns:
+            base_depth = chunk["station_id"].astype(str).map(split_station_depth)
+            chunk["base_station_id"] = base_depth.map(lambda x: x[0])
+            chunk["depth_name"] = base_depth.map(lambda x: x[1])
+        chunk = chunk[chunk["base_station_id"].astype(str).isin(station_set)]
         if chunk.empty:
             continue
         for row in chunk.to_dict(orient="records"):
-            bucket[str(row["station_id"])].append(row)
+            base_station_id = str(row.get("base_station_id", ""))
+            depth_name = str(row.get("depth_name", "") or "")
+            bucket[base_station_id][depth_name].append(row)
 
     merged_rows: List[dict] = []
-    for sid, rows in bucket.items():
-        if not rows:
+    for base_station_id in base_station_ids:
+        depth_rows = bucket.get(str(base_station_id), {})
+        if not depth_rows:
             continue
-        sdf = pd.DataFrame(rows).sort_values("timestamp")
-        idx = downsample_by_stride(np.arange(len(sdf)), max_points_per_station)
-        sdf = sdf.iloc[idx]
-        sdf["station_id"] = sid
-        merged_rows.extend(sdf.to_dict(orient="records"))
+        for depth_name in sorted(depth_rows.keys(), key=depth_sort_key):
+            rows = depth_rows[depth_name]
+            if not rows:
+                continue
+            sdf = pd.DataFrame(rows).sort_values("timestamp")
+            idx = downsample_by_stride(np.arange(len(sdf)), max_points_per_depth)
+            sdf = sdf.iloc[idx].copy()
+            sdf["base_station_id"] = str(base_station_id)
+            sdf["depth_name"] = depth_name
+            merged_rows.extend(sdf.to_dict(orient="records"))
 
     return pd.DataFrame(merged_rows)
 
 
-def generate_trend_plot(trend_df: pd.DataFrame, output_path: str, top_k: int, use_cn_font: bool) -> None:
-    if trend_df.empty:
-        print("[绘图] 趋势图数据为空，跳过")
-        return
-def generate_trend_plot(
+def generate_station_depth_trend_plots(
     trend_df: pd.DataFrame,
     output_path: str,
     top_k: int,
     use_cn_font: bool,
 ) -> List[str]:
-    """按站点分页绘制趋势图，每张图固定 2x2（四站点）。"""
+    """每个站点输出一个图像文件，单图内 2x2 子图分别展示四个深度的真实值/预测值。"""
     if trend_df.empty:
         print("[绘图] 趋势图数据为空，跳过")
         return []
 
-    # 输出全部站点；top_k 参数保留以兼容历史命令行签名。
-    station_order = trend_df["station_id"].value_counts().index.tolist()
+    station_order = trend_df["base_station_id"].astype(str).value_counts().index.tolist()
+    # 输出全部站点；top_k 参数保留仅为兼容历史命令行签名。
     if not station_order:
         print("[绘图] 无可用站点，跳过趋势图")
         return []
@@ -650,57 +684,68 @@ def generate_trend_plot(
     if ext == "":
         ext = ".png"
 
-    per_figure = 4
-    ncols = 2
-    nrows = 2
-    total_pages = int(math.ceil(len(station_order) / float(per_figure)))
     saved_paths: List[str] = []
+    for base_station_id in station_order:
+        sdf = trend_df[trend_df["base_station_id"].astype(str) == str(base_station_id)].copy()
+        if sdf.empty:
+            continue
 
-    for page_idx in range(total_pages):
-        start = page_idx * per_figure
-        end = min(start + per_figure, len(station_order))
-        page_stations = station_order[start:end]
+        depth_order = sorted(sdf["depth_name"].astype(str).unique().tolist(), key=depth_sort_key)
+        if len(depth_order) > 4:
+            depth_order = depth_order[:4]
 
-        fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(16, 9), squeeze=False)
+        fig, axes = plt.subplots(2, 2, figsize=(16, 9), squeeze=False)
         flat_axes = axes.reshape(-1)
 
-        for ax_idx, station_id in enumerate(page_stations):
-            ax = flat_axes[ax_idx]
-            sdf = trend_df[trend_df["station_id"] == station_id].sort_values("timestamp")
-            x = np.arange(len(sdf))
-            ax.plot(x, sdf["true_value"].values, label=tr("真实值", "Ground Truth", use_cn_font), linewidth=1.4)
-            ax.plot(x, sdf["pred_value"].values, label=tr("预测值", "Prediction", use_cn_font), linewidth=1.4, alpha=0.9)
-            ax.set_title(tr(f"站点 {station_id}：预测值 vs 真实值", f"Station {station_id}: Prediction vs Ground Truth", use_cn_font))
-            ax.set_xlabel(tr("时间索引", "Time Index", use_cn_font))
-            ax.set_ylabel(tr("数值", "Value", use_cn_font))
-            ax.grid(alpha=0.25)
-            ax.legend(loc="best")
-
-        for ax_idx in range(len(page_stations), per_figure):
-            fig.delaxes(flat_axes[ax_idx])
+        for i in range(4):
+            ax = flat_axes[i]
+            if i < len(depth_order):
+                depth_name = depth_order[i]
+                ddf = sdf[sdf["depth_name"].astype(str) == str(depth_name)].sort_values("timestamp")
+                x = np.arange(len(ddf))
+                ax.plot(x, ddf["true_value"].values, label=tr("真实值", "Ground Truth", use_cn_font), linewidth=1.4)
+                ax.plot(x, ddf["pred_value"].values, label=tr("预测值", "Prediction", use_cn_font), linewidth=1.4, alpha=0.9)
+                ax.set_title(tr(f"深度 {depth_name}", f"Depth {depth_name}", use_cn_font))
+                ax.set_xlabel(tr("时间索引", "Time Index", use_cn_font))
+                ax.set_ylabel(tr("数值", "Value", use_cn_font))
+                ax.grid(alpha=0.25)
+                ax.legend(loc="best")
+            else:
+                ax.text(0.5, 0.5, tr("无该深度数据", "No data for this depth", use_cn_font), ha="center", va="center")
+                ax.set_axis_off()
 
         fig.suptitle(
             tr(
-                f"测试集预测趋势对比（第 {page_idx + 1}/{total_pages} 页）",
-                f"Prediction Trend on Test Set (Page {page_idx + 1}/{total_pages})",
+                f"站点 {base_station_id}：四深度预测值与真实值对比",
+                f"Station {base_station_id}: Four-depth Prediction vs Ground Truth",
                 use_cn_font,
             ),
             fontsize=14,
         )
         fig.tight_layout(rect=[0, 0.02, 1, 0.96])
 
-        if total_pages == 1:
-            page_path = f"{base}{ext}"
-        else:
-            page_path = f"{base}_part{page_idx + 1:02d}{ext}"
-        fig.savefig(page_path, dpi=180)
+        station_file = f"{base}_{sanitize_filename_token(base_station_id)}{ext}"
+        fig.savefig(station_file, dpi=180)
         plt.close(fig)
-        saved_paths.append(page_path)
+        saved_paths.append(station_file)
 
-    print(f"[绘图] 趋势图已保存，共 {len(saved_paths)} 张")
+    print(f"[绘图] 站点四深度趋势图已保存，共 {len(saved_paths)} 张")
     for p in saved_paths:
         print(f"[绘图]   - {p}")
     return saved_paths
+
+
+def sort_station_metrics_grouped(station_metrics_df: pd.DataFrame) -> pd.DataFrame:
+    if station_metrics_df is None or station_metrics_df.empty:
+        return station_metrics_df
+    out = station_metrics_df.copy()
+    if "base_station_id" not in out.columns or "depth_name" not in out.columns:
+        base_depth = out["station_id"].astype(str).map(split_station_depth)
+        out["base_station_id"] = base_depth.map(lambda x: x[0])
+        out["depth_name"] = base_depth.map(lambda x: x[1])
+    out["_depth_order"] = out["depth_name"].map(lambda x: depth_sort_key(str(x))[0])
+    out = out.sort_values(["base_station_id", "_depth_order", "depth_name", "station_id"]).drop(columns=["_depth_order"])
+    return out.reset_index(drop=True)
 
 
 def generate_error_plots(sample_df: pd.DataFrame, station_metrics_df: pd.DataFrame, output_path: str, use_cn_font: bool) -> None:
@@ -821,9 +866,9 @@ def write_report(
             lines.append(f"{k}: {v:.6f}")
         lines.append("")
 
-    lines.append("[五] 分站点指标（前20条，按 MAE 降序）")
+    lines.append("[五] 分站点指标（全量，按站点分组并按深度排序）")
     if station_metrics_df is not None and not station_metrics_df.empty:
-        lines.append(station_metrics_df.head(20).to_string(index=False))
+        lines.append(sort_station_metrics_grouped(station_metrics_df).to_string(index=False, max_rows=None))
     else:
         lines.append("无可用分站点指标。")
     lines.append("")
@@ -939,16 +984,22 @@ def main() -> None:
     print(f"  过滤样本: {count_info['dropped']}")
 
     print("[6/6] 绘图并输出报告")
-    selected_stations = []
+    selected_base_stations: List[str] = []
     if not station_metrics_df.empty:
-        selected_stations = station_metrics_df.sort_values("sample_count", ascending=False)["station_id"].astype(str).tolist()
+        grouped_station_df = sort_station_metrics_grouped(station_metrics_df)
+        base_counts = (
+            grouped_station_df.groupby("base_station_id", as_index=False)["sample_count"]
+            .sum()
+            .sort_values("sample_count", ascending=False)
+        )
+        selected_base_stations = base_counts["base_station_id"].astype(str).tolist()
 
-    trend_df = collect_trend_data_from_csv(
+    trend_df = collect_station_depth_trend_data_from_csv(
         csv_path=csv_path,
-        station_ids=selected_stations,
-        max_points_per_station=analysis_args.max_trend_points_per_station,
+        base_station_ids=selected_base_stations,
+        max_points_per_depth=analysis_args.max_trend_points_per_station,
     )
-    trend_plot_paths = generate_trend_plot(trend_df, trend_plot_path, analysis_args.trend_top_k_stations, use_cn_font)
+    trend_plot_paths = generate_station_depth_trend_plots(trend_df, trend_plot_path, analysis_args.trend_top_k_stations, use_cn_font)
     generate_error_plots(sample_df, station_metrics_df, error_plot_path, use_cn_font)
 
     write_report(

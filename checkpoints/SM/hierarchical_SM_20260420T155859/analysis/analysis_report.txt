@@ -1,0 +1,60 @@
+================================================================================
+模型测试与结果分析报告
+================================================================================
+生成时间: 2026-04-20 16:46:08
+数据集: SM
+模型: hierarchical
+预测属性: SM
+checkpoint目录: ./checkpoints/SM/hierarchical_SM_20260420T155859
+总耗时: 28.36 秒
+
+[一] 数据映射来源
+test_nodes来源: dataset/SM_NQ/test_nodes.npy
+站点元数据来源: <dataset.station_ids>
+
+[二] 样本统计
+保留样本数: 760613
+过滤样本数: 647707
+
+[三] 总体指标
+总体 MAE: 0.046314
+总体 RMSE: 0.055794
+总体 R2: 0.579414
+
+[四] 模型内部 metrics（来自 model.compute_metrics）
+MAE: 0.046314
+RMSE: 0.055794
+MAPE: 0.636866
+
+[五] 分深度指标
+ feature_index feature_name  sample_count      MAE     RMSE       R2
+             0          5cm        225159 0.053567 0.062768 0.699834
+             1         10cm        177195 0.047656 0.055761 0.464764
+             2         20cm        203799 0.035956 0.047137 0.498670
+             3         40cm        154460 0.047866 0.055565 0.232746
+
+[六] 分站点指标（前20条，按 MAE 降序）
+station_id  target_station_index  original_node_index  sample_count      MAE     RMSE        R2
+        C4                     0                   11         74424 0.067995 0.075161 -0.994806
+      CD03                     7                   14           781 0.067600 0.080066 -2.800851
+        C3                     3                   10         37212 0.062363 0.075525 -1.377369
+    MS3513                     2                   30         54743 0.054387 0.064607  0.437197
+      CD07                    11                   18         37004 0.054369 0.060385  0.586083
+    MS3627                    10                   43         74500 0.054204 0.060230  0.265472
+    MS3488                     1                   26         72334 0.051300 0.061908  0.297380
+      CD01                    15                   12         49615 0.046450 0.056330  0.742252
+    MS3603                     8                   40         74495 0.039229 0.044481  0.607950
+        C2                     5                    9         25992 0.039093 0.044355  0.716273
+    MS3620                     9                   42         72823 0.039082 0.047511  0.282845
+    MS3545                    12                   35         20945 0.035886 0.045646 -0.360521
+        P8                    16                   54         16917 0.035054 0.045589 -0.299204
+    MS3518                    14                   31         74404 0.033483 0.039594  0.801592
+    MS3533                    13                   34         74424 0.028615 0.037263  0.807837
+
+[七] 产物路径
+结构化CSV: ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/predictions_structured.csv
+趋势图: ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_5cm_part01.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_5cm_part02.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_5cm_part03.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_5cm_part04.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_10cm_part01.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_10cm_part02.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_10cm_part03.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_20cm_part01.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_20cm_part02.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_20cm_part03.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_20cm_part04.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_40cm_part01.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_40cm_part02.png; ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/trend_prediction_vs_truth_40cm_part03.png
+误差图: ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/error_analysis.png
+分站点指标CSV: ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/station_metrics.csv
+分深度指标CSV: ./checkpoints/SM/hierarchical_SM_20260420T155859/analysis/feature_metrics.csv
+================================================================================

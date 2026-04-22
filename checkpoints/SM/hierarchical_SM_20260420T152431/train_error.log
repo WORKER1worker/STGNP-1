@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "train.py", line 43, in <module>
+    model.optimize_parameters()   # calculate loss functions, get gradients, update network weights
+  File "/root/autodl-tmp/over/STGNP/models/hierarchical/hierarchical_model.py", line 183, in optimize_parameters
+    self.forward()
+  File "/root/autodl-tmp/over/STGNP/models/hierarchical/hierarchical_model.py", line 91, in forward
+    self.netHierarchicalNP(self.feat_context, self.pred_context, self.feat_target,
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/parallel/data_parallel.py", line 155, in forward
+    for t in chain(self.module.parameters(), self.module.buffers()):
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2137, in buffers
+    for _, buf in self.named_buffers(recurse=recurse):
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2165, in named_buffers
+    yield from gen
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2049, in _named_members
+    for module_prefix, module in modules:
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2266, in named_modules
+    for m in module.named_modules(memo, submodule_prefix, remove_duplicate):
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2266, in named_modules
+    for m in module.named_modules(memo, submodule_prefix, remove_duplicate):
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2266, in named_modules
+    for m in module.named_modules(memo, submodule_prefix, remove_duplicate):
+  [Previous line repeated 1 more time]
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2260, in named_modules
+    memo.add(self)
+KeyboardInterrupt

@@ -1,0 +1,34 @@
+================ Metrics (Wed Apr 22 11:52:08 2026) ================
+(epoch: 0, iters: 1071, time: 2.463) MAE: 0.05012 RMSE: 0.06335 MAPE: 0.42693 
+(epoch: 1, iters: 2142, time: 2.032) MAE: 0.05244 RMSE: 0.06612 MAPE: 0.45376 
+(epoch: 2, iters: 3213, time: 2.118) MAE: 0.05009 RMSE: 0.06561 MAPE: 0.40936 
+(epoch: 3, iters: 4284, time: 2.137) MAE: 0.04917 RMSE: 0.06436 MAPE: 0.39553 
+(epoch: 4, iters: 5355, time: 2.161) MAE: 0.04952 RMSE: 0.06380 MAPE: 0.40039 
+(epoch: 5, iters: 6426, time: 2.008) MAE: 0.05020 RMSE: 0.06681 MAPE: 0.39736 
+(epoch: 6, iters: 7497, time: 2.298) MAE: 0.05002 RMSE: 0.06427 MAPE: 0.39632 
+(epoch: 7, iters: 8568, time: 2.016) MAE: 0.04822 RMSE: 0.06280 MAPE: 0.37210 
+(epoch: 8, iters: 9639, time: 2.180) MAE: 0.05195 RMSE: 0.06630 MAPE: 0.42670 
+(epoch: 9, iters: 10710, time: 2.197) MAE: 0.05173 RMSE: 0.06828 MAPE: 0.40495 
+(epoch: 10, iters: 11781, time: 1.985) MAE: 0.05076 RMSE: 0.06587 MAPE: 0.39893 
+(epoch: 11, iters: 12852, time: 2.340) MAE: 0.05263 RMSE: 0.07011 MAPE: 0.41606 
+(epoch: 12, iters: 13923, time: 2.373) MAE: 0.05149 RMSE: 0.06693 MAPE: 0.40687 
+(epoch: 13, iters: 14994, time: 2.374) MAE: 0.04893 RMSE: 0.06176 MAPE: 0.39783 
+(epoch: 14, iters: 16065, time: 2.322) MAE: 0.04928 RMSE: 0.06238 MAPE: 0.39961 
+(epoch: 15, iters: 17136, time: 2.429) MAE: 0.05201 RMSE: 0.06805 MAPE: 0.40993 
+(epoch: 16, iters: 18207, time: 2.330) MAE: 0.05350 RMSE: 0.06908 MAPE: 0.43826 
+(epoch: 17, iters: 19278, time: 2.437) MAE: 0.05145 RMSE: 0.06707 MAPE: 0.41563 
+(epoch: 18, iters: 20349, time: 2.144) MAE: 0.05180 RMSE: 0.06766 MAPE: 0.41224 
+(epoch: 19, iters: 21420, time: 2.493) MAE: 0.05087 RMSE: 0.06665 MAPE: 0.40610 
+(epoch: 20, iters: 22491, time: 2.080) MAE: 0.05030 RMSE: 0.06531 MAPE: 0.40320 
+(epoch: 21, iters: 23562, time: 2.695) MAE: 0.05088 RMSE: 0.06583 MAPE: 0.41279 
+(epoch: 22, iters: 24633, time: 2.467) MAE: 0.05051 RMSE: 0.06601 MAPE: 0.40700 
+(epoch: 23, iters: 25704, time: 2.232) MAE: 0.05123 RMSE: 0.06856 MAPE: 0.40955 
+(epoch: 24, iters: 26775, time: 2.206) MAE: 0.05095 RMSE: 0.06658 MAPE: 0.40616 
+(epoch: 25, iters: 27846, time: 2.527) MAE: 0.05096 RMSE: 0.06622 MAPE: 0.41238 
+(epoch: 26, iters: 28917, time: 2.483) MAE: 0.05045 RMSE: 0.06603 MAPE: 0.40071 
+(epoch: 27, iters: 29988, time: 2.559) MAE: 0.05098 RMSE: 0.06579 MAPE: 0.40878 
+(epoch: 28, iters: 31059, time: 2.426) MAE: 0.05127 RMSE: 0.06706 MAPE: 0.40939 
+(epoch: 29, iters: 32130, time: 2.286) MAE: 0.05123 RMSE: 0.06699 MAPE: 0.41055 
+(epoch: 30, iters: 33201, time: 2.413) MAE: 0.05102 RMSE: 0.06675 MAPE: 0.40590 
+================ Metrics (Wed Apr 22 13:31:35 2026) ================
+(epoch: 0, iters: 1071, time: 4.312) MAE: 0.05050 RMSE: 0.06535 MAPE: 0.44103 

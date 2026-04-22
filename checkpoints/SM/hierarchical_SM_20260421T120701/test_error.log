@@ -1,0 +1,12 @@
+test_and_analyze.py:947: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = plt.cm.get_cmap("tab10", max(1, len(depth_names)))
+test_and_analyze.py:947: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = plt.cm.get_cmap("tab10", max(1, len(depth_names)))
+test_and_analyze.py:947: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = plt.cm.get_cmap("tab10", max(1, len(depth_names)))
+test_and_analyze.py:947: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = plt.cm.get_cmap("tab10", max(1, len(depth_names)))
+test_and_analyze.py:947: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = plt.cm.get_cmap("tab10", max(1, len(depth_names)))
+test_and_analyze.py:947: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = plt.cm.get_cmap("tab10", max(1, len(depth_names)))

@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "train.py", line 35, in <module>
+    for i, data in enumerate(dataset):  # inner loop within one epoch
+  File "/root/autodl-tmp/over/STGNP/data/__init__.py", line 85, in __iter__
+    for i, data in enumerate(self.dataloader):
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/utils/data/dataloader.py", line 634, in __next__
+    data = self._next_data()
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/utils/data/dataloader.py", line 678, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/utils/data/_utils/fetch.py", line 51, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/utils/data/_utils/fetch.py", line 51, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/root/autodl-tmp/over/STGNP/data/base_dataset.py", line 77, in __getitem__
+    batch_data = self._fetch_divided_form_data_item(self.raw_data, self.A, index, self.opt.t_len,
+  File "/root/autodl-tmp/over/STGNP/data/base_dataset.py", line 256, in _fetch_divided_form_data_item
+    pred_context, feat_context, missing_mask_context = BaseDataset._fetch_data_item_from_dict(data, start_index, end_index, context_index)
+  File "/root/autodl-tmp/over/STGNP/data/base_dataset.py", line 208, in _fetch_data_item_from_dict
+    pred = torch.from_numpy(data['pred'][station_index, start_index:end_index])
+KeyboardInterrupt

@@ -1,0 +1,47 @@
+Traceback (most recent call last):
+  File "test.py", line 15, in <module>
+    model.setup(opt)               # regular setup: load and print networks; create schedulers
+  File "/root/autodl-tmp/over/STGNP/models/base_model.py", line 84, in setup
+    self.load_networks(load_suffix)
+  File "/root/autodl-tmp/over/STGNP/models/base_model.py", line 252, in load_networks
+    net.load_state_dict(state_dict)
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2041, in load_state_dict
+    raise RuntimeError('Error(s) in loading state_dict for {}:\n\t{}'.format(
+RuntimeError: Error(s) in loading state_dict for HierarchicalNP:
+	size mismatch for deter.feature_embedding.convolution.weight: copying a param with shape torch.Size([16, 4, 1]) from checkpoint, the shape in current model is torch.Size([16, 1, 1]).
+	size mismatch for observation.dec_out_1.weight: copying a param with shape torch.Size([4, 128, 1]) from checkpoint, the shape in current model is torch.Size([1, 128, 1]).
+	size mismatch for observation.dec_out_1.bias: copying a param with shape torch.Size([4]) from checkpoint, the shape in current model is torch.Size([1]).
+	size mismatch for observation.dec_out_2.weight: copying a param with shape torch.Size([4, 128, 1]) from checkpoint, the shape in current model is torch.Size([1, 128, 1]).
+	size mismatch for observation.dec_out_2.bias: copying a param with shape torch.Size([4]) from checkpoint, the shape in current model is torch.Size([1]).
+test_and_analyze.py:765: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from current font.
+  fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+test_and_analyze.py:765: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from current font.
+  fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+test_and_analyze.py:771: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from current font.
+  fig.savefig(page_path, dpi=180)
+test_and_analyze.py:771: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from current font.
+  fig.savefig(page_path, dpi=180)
+test_and_analyze.py:765: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from current font.
+  fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+test_and_analyze.py:765: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from current font.
+  fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+test_and_analyze.py:771: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from current font.
+  fig.savefig(page_path, dpi=180)
+test_and_analyze.py:771: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from current font.
+  fig.savefig(page_path, dpi=180)
+test_and_analyze.py:765: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from current font.
+  fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+test_and_analyze.py:765: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from current font.
+  fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+test_and_analyze.py:771: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from current font.
+  fig.savefig(page_path, dpi=180)
+test_and_analyze.py:771: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from current font.
+  fig.savefig(page_path, dpi=180)
+test_and_analyze.py:765: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from current font.
+  fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+test_and_analyze.py:765: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from current font.
+  fig.tight_layout(rect=[0, 0.02, 1, 0.96])
+test_and_analyze.py:771: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from current font.
+  fig.savefig(page_path, dpi=180)
+test_and_analyze.py:771: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from current font.
+  fig.savefig(page_path, dpi=180)

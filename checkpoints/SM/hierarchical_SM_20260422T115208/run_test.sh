@@ -1,0 +1,2 @@
+source activate pytorch-py39
+python test.py --model hierarchical --dataset_mode SM --pred_attr SM --gpu_ids 0 --config SM_config1 --file_time 20260422T115208 --epoch best --sm_data_path data/dataset/SM_NQ_depths/SM_NQ-30-minutes_05cm.csv --sm_location_path data/dataset/SM_NQ_depths/Stations_information_NAQU.csv --sm_test_nodes_path dataset/SM_NQ/test_nodes.npy --sm_graph_mode joint_4n --sm_vertical_init 1.0 --sm_learn_vertical_weight 0
