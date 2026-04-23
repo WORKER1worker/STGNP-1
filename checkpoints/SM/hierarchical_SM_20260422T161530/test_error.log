@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "test.py", line 15, in <module>
+    model.setup(opt)               # regular setup: load and print networks; create schedulers
+  File "/root/autodl-tmp/over/STGNP/models/base_model.py", line 84, in setup
+    self.load_networks(load_suffix)
+  File "/root/autodl-tmp/over/STGNP/models/base_model.py", line 252, in load_networks
+    net.load_state_dict(state_dict)
+  File "/root/miniconda3/lib/python3.8/site-packages/torch/nn/modules/module.py", line 2041, in load_state_dict
+    raise RuntimeError('Error(s) in loading state_dict for {}:\n\t{}'.format(
+RuntimeError: Error(s) in loading state_dict for HierarchicalNP:
+	Unexpected key(s) in state_dict: "vertical_weight_raw". 

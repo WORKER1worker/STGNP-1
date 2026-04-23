@@ -1,0 +1,59 @@
+================================================================================
+模型测试与结果分析报告
+================================================================================
+生成时间: 2026-04-22 19:46:32
+数据集: SM
+模型: hierarchical
+预测属性: SM
+checkpoint目录: ./checkpoints/SM/hierarchical_SM_20260422T161530
+总耗时: 13.48 秒
+
+[一] 数据映射来源
+test_nodes来源: <dataset.test_node_index>
+站点元数据来源: <dataset.station_ids>
+
+[二] 样本统计
+保留样本数: 389570
+过滤样本数: 79870
+
+[三] 总体指标
+总体 MAE: 0.041249
+总体 RMSE: 0.050899
+总体 R2: 0.643405
+
+[四] 模型内部 metrics（来自 model.compute_metrics）
+MAE: 0.041249
+RMSE: 0.050899
+MAPE: 0.531818
+
+[五] 分站点指标（全量，按站点分组并按深度排序）
+ station_id base_station_id depth_name  target_station_index  original_node_index  sample_count      MAE     RMSE        R2
+   CD07@5cm            CD07        5cm                     0                    9         18501 0.048153 0.052131  0.791534
+  CD07@20cm            CD07       20cm                    12                   63         18503 0.052859 0.060407  0.116146
+ MS3513@5cm          MS3513        5cm                     1                   16         18366 0.024756 0.034227  0.878249
+MS3513@10cm          MS3513       10cm                     7                   43         18366 0.033443 0.038958  0.730179
+MS3513@20cm          MS3513       20cm                    13                   70         17978 0.090473 0.092170 -6.252494
+MS3513@40cm          MS3513       40cm                    19                   97            33 0.158716 0.199310  0.028341
+ MS3518@5cm          MS3518        5cm                     2                   17         18601 0.040764 0.043299  0.873004
+MS3518@10cm          MS3518       10cm                     8                   44         18601 0.034129 0.044497  0.741262
+MS3518@20cm          MS3518       20cm                    14                   71         18601 0.025286 0.031823  0.763473
+MS3518@40cm          MS3518       40cm                    20                   98         18601 0.049607 0.052391 -0.185436
+ MS3533@5cm          MS3533        5cm                     3                   19         18606 0.048847 0.061943  0.771547
+MS3533@10cm          MS3533       10cm                     9                   46         18606 0.024430 0.027355  0.858662
+MS3533@20cm          MS3533       20cm                    15                   73         18606 0.021243 0.024191  0.770768
+MS3533@40cm          MS3533       40cm                    21                  100         18606 0.010178 0.013367  0.895216
+ MS3603@5cm          MS3603        5cm                     4                   21         18624 0.026468 0.030774  0.858731
+MS3603@10cm          MS3603       10cm                    10                   48         18623 0.036131 0.039379  0.640086
+MS3603@20cm          MS3603       20cm                    16                   75         18624 0.031079 0.035218  0.578974
+MS3603@40cm          MS3603       40cm                    22                  102         18624 0.090242 0.093516 -0.681376
+ MS3627@5cm          MS3627        5cm                     5                   23         18625 0.033003 0.037461  0.753459
+MS3627@10cm          MS3627       10cm                    11                   50         18625 0.045047 0.050503  0.561064
+MS3627@20cm          MS3627       20cm                    17                   77         18625 0.067378 0.076393 -1.007370
+MS3627@40cm          MS3627       40cm                    23                  104         18625 0.033909 0.041514  0.171919
+
+[六] 产物路径
+结构化CSV: checkpoints/SM/hierarchical_SM_20260422T161530/analysis/predictions_structured.csv
+趋势图: checkpoints/SM/hierarchical_SM_20260422T161530/analysis/trend_prediction_vs_truth_MS3627.png; checkpoints/SM/hierarchical_SM_20260422T161530/analysis/trend_prediction_vs_truth_MS3603.png; checkpoints/SM/hierarchical_SM_20260422T161530/analysis/trend_prediction_vs_truth_MS3533.png; checkpoints/SM/hierarchical_SM_20260422T161530/analysis/trend_prediction_vs_truth_MS3518.png; checkpoints/SM/hierarchical_SM_20260422T161530/analysis/trend_prediction_vs_truth_MS3513.png; checkpoints/SM/hierarchical_SM_20260422T161530/analysis/trend_prediction_vs_truth_CD07.png
+误差图: checkpoints/SM/hierarchical_SM_20260422T161530/analysis/error_analysis.png
+分站点指标CSV: checkpoints/SM/hierarchical_SM_20260422T161530/analysis/station_metrics.csv
+================================================================================

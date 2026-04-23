@@ -1,0 +1,68 @@
+----------------- Options ---------------
+               batch_size: 128                           
+                     beta: 1.0                           
+          checkpoints_dir: ./checkpoints/SM              	[default: ./checkpoints]
+                   config: SM_config1                    	[default: config1]
+           continue_train: False                         
+            covariate_dim: 0                             
+             dataset_mode: SM                            	[default: ]
+               delete_col: ['u_speed', 'v_speed', 'latitude', 'longitude']
+                  dropout: 0.1                           
+        enable_curriculum: False                         
+           enable_neptune: False                         
+               enable_val: True                          	[default: False]
+            enable_visual: False                         
+                    epoch: latest                        
+              epoch_count: 0                             
+          eval_epoch_freq: 1                             
+                file_time: 20260423T191657               	[default: None]
+                  gpu_ids: 0                             	[default: -1]
+                init_gain: 1.0                           
+                init_type: xavier                        
+                  isTrain: True                          	[default: None]
+                load_iter: 0                             	[default: 0]
+                       lr: 0.001                         
+           lr_decay_iters: 50                            
+                lr_policy: linear                        
+         max_dataset_size: inf                           
+                    model: hierarchical                  	[default: ]
+                 n_epochs: 20                            
+           n_epochs_decay: 10                            
+          n_epochs_target: 100                           
+ n_epochs_target_increase: 150                           
+                     name: hierarchical_SM_20260423T191657	[default: None]
+          neptune_project:                               
+            neptune_token:                               
+              num_threads: 4                             	[default: 0]
+         num_train_target: 3                             
+     num_train_target_end: 6                             
+                    phase: train                         
+                pred_attr: SM                            	[default: PM25_Concentration]
+               print_freq: 20                            
+                save_best: True                          	[default: False]
+          save_epoch_freq: 100                           
+                     seed: 2023                          
+           serial_batches: False                         
+             sm_data_path: dataset/SM_NQ_selected25_depths/SM_NQ-30-minutes_05cm.csv	[default: data/dataset/SM_NQ/SM_NQ-30-minutes_05cm.csv]
+            sm_graph_mode: joint_4n                      	[default: channel]
+ sm_learn_vertical_weight: 0                             	[default: 1]
+         sm_location_path: dataset/SM_NQ_selected25_depths/Stations_information_NAQU.csv	[default: data/dataset/SM_NQ/Stations_information_NAQU.csv]
+       sm_test_nodes_path: dataset/SM_NQ_selected25_depths/test_nodes.npy	[default: dataset/SM_NQ/test_nodes.npy]
+         sm_vertical_init: 0.0                           	[default: 1.0]
+              spatial_dim: 2                             
+                    t_len: 24                            
+              total_iters: 0                             
+                  use_adj: True                          
+                  verbose: False                         
+                    y_dim: 1                             
+----------------- End -------------------
+----------------- Model Configurations ---------------
+             tcn_channels: [32, 64]                      
+          latent_channels: [16, 32]                      
+              emd_channel: 16                            
+        num_latent_layers: 1                             
+   observation_hidden_dim: 128                           
+   num_observation_layers: 3                             
+          tcn_kernel_size: 3                             
+                  dropout: 0.1                           
+----------------- End -------------------
