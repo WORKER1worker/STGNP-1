@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "train.py", line 59, in <module>
+    model.cache_results()  # store current batch results
+  File "/root/autodl-tmp/over/STGNP/models/hierarchical/hierarchical_model.py", line 92, in cache_results
+    self._add_to_cache('missing_context', self.missing_mask_context.reshape([-1, self.missing_mask_context.shape[2]]))
+  File "/root/autodl-tmp/over/STGNP/models/base_model.py", line 192, in _add_to_cache
+    self.results[key] = np.concatenate((self.results[key], data), axis=0)
+  File "<__array_function__ internals>", line 200, in concatenate
+KeyboardInterrupt

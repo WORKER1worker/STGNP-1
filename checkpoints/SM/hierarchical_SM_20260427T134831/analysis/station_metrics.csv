@@ -1,0 +1,2 @@
+station_id,target_station_index,original_node_index,sample_count,MAE,RMSE,R2
+MS3603,0,34,18624,0.01692323182762322,0.02621688221056592,0.8974707121911334

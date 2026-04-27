@@ -74,7 +74,7 @@ def parse_args() -> Tuple[AnalysisArgs, object, dict]:
     parser.add_argument("--csv_chunk_size", type=int, default=50000, help="CSV 分块写入行数")
     parser.add_argument("--progress_every_batches", type=int, default=20, help="推理日志打印间隔（batch）")
 
-    parser.add_argument("--test_nodes_path", type=str, default="", help="test_nodes.npy 路径（可选）")
+    parser.add_argument("--test_nodes_path", type=str, default="", help="目标节点索引路径（兼容旧参数名，可用于 test/holdout）")
     parser.add_argument("--station_meta_path", type=str, default="", help="站点元数据路径（CSV/Excel，可选）")
 
     parser.add_argument("--keep_missing", action="store_true", help="保留缺失样本（默认会过滤缺失样本）")
@@ -178,24 +178,30 @@ def infer_test_nodes_candidates(dataset_mode: str) -> List[str]:
     return dedup
 
 
-def load_test_nodes(
+def load_target_nodes(
     analysis_args: AnalysisArgs,
     opt,
     raw_dataset,
     target_station_count: int,
 ) -> Tuple[np.ndarray, str]:
-    """加载 test_nodes.npy，失败时回退到顺序映射。"""
-    # 显式指定路径优先，便于复现实验。
+    """加载目标节点索引，支持 test/holdout，失败时回退顺序映射。"""
+    eval_mode = getattr(opt, "sm_eval_target_mode", "test")
+
+    # 显式指定路径优先，便于复现实验；参数名沿用历史兼容。
     if analysis_args.test_nodes_path:
         if os.path.isfile(analysis_args.test_nodes_path):
             arr = np.load(analysis_args.test_nodes_path)
             arr = np.asarray(arr).reshape(-1).astype(int)
-            print(f"[映射] 使用显式 test_nodes 文件: {analysis_args.test_nodes_path}，长度={len(arr)}")
+            print(f"[映射] 使用显式目标节点文件: {analysis_args.test_nodes_path}，长度={len(arr)}")
             return arr, analysis_args.test_nodes_path
-        print(f"[映射] 显式 test_nodes 文件不存在: {analysis_args.test_nodes_path}，将继续自动推断")
+        print(f"[映射] 显式目标节点文件不存在: {analysis_args.test_nodes_path}，将继续自动推断")
 
     # 自动模式下，优先与当前推理数据保持一致，避免路径猜测与数据加载来源不一致。
     ds = getattr(raw_dataset, "dataset", None)
+    if ds is not None and hasattr(ds, "eval_target_node_index") and ds.eval_target_node_index is not None:
+        arr = np.asarray(ds.eval_target_node_index).reshape(-1).astype(int)
+        print(f"[映射] 使用数据集对象 eval_target_node_index(mode={eval_mode})，长度={len(arr)}")
+        return arr, "<dataset.eval_target_node_index>"
     if ds is not None and hasattr(ds, "test_node_index") and ds.test_node_index is not None:
         arr = np.asarray(ds.test_node_index).reshape(-1).astype(int)
         print(f"[映射] 使用数据集对象 test_node_index，长度={len(arr)}")
@@ -206,11 +212,11 @@ def load_test_nodes(
         if os.path.isfile(path):
             arr = np.load(path)
             arr = np.asarray(arr).reshape(-1).astype(int)
-            print(f"[映射] 使用 test_nodes 文件: {path}，长度={len(arr)}")
+            print(f"[映射] 使用候选目标节点文件: {path}，长度={len(arr)}")
             return arr, path
 
     arr = np.arange(target_station_count, dtype=int)
-    print("[映射] test_nodes.npy 未找到，回退为顺序映射 0..N-1")
+    print("[映射] 目标节点文件未找到，回退为顺序映射 0..N-1")
     return arr, "<fallback_sequential>"
 
 
@@ -625,10 +631,6 @@ def collect_trend_data_from_csv(
     return pd.DataFrame(merged_rows)
 
 
-def generate_trend_plot(trend_df: pd.DataFrame, output_path: str, top_k: int, use_cn_font: bool) -> None:
-    if trend_df.empty:
-        print("[绘图] 趋势图数据为空，跳过")
-        return
 def generate_trend_plot(
     trend_df: pd.DataFrame,
     output_path: str,
@@ -780,6 +782,7 @@ def write_report(
     station_metrics_df: pd.DataFrame,
     mapping_source: str,
     station_meta_source: str,
+    target_mode: str,
     csv_path: str,
     trend_plot_paths: Sequence[str],
     error_plot_path: str,
@@ -800,7 +803,8 @@ def write_report(
     lines.append("")
 
     lines.append("[一] 数据映射来源")
-    lines.append(f"test_nodes来源: {mapping_source}")
+    lines.append(f"目标模式: {target_mode}")
+    lines.append(f"目标节点来源: {mapping_source}")
     lines.append(f"站点元数据来源: {station_meta_source}")
     lines.append("")
 
@@ -904,10 +908,10 @@ def main() -> None:
     y_pred_3d = to_numpy_3d(y_pred, "y_pred")
     target_station_count = y_pred_3d.shape[1]
 
-    test_nodes, mapping_source = load_test_nodes(analysis_args, opt, dataset, target_station_count)
-    max_node_index = int(max(np.max(test_nodes) if len(test_nodes) > 0 else 0, target_station_count - 1))
+    target_nodes, mapping_source = load_target_nodes(analysis_args, opt, dataset, target_station_count)
+    max_node_index = int(max(np.max(target_nodes) if len(target_nodes) > 0 else 0, target_station_count - 1))
     station_ids, station_meta_source = load_station_id_table(analysis_args, opt, dataset, max_node_index)
-    station_mapping = build_target_station_mapping(test_nodes, station_ids, target_station_count)
+    station_mapping = build_target_station_mapping(target_nodes, station_ids, target_station_count)
 
     output_dir = analysis_args.output_dir.strip() if analysis_args.output_dir else os.path.join(model.save_dir, "analysis")
     os.makedirs(output_dir, exist_ok=True)
@@ -961,6 +965,7 @@ def main() -> None:
         station_metrics_df=station_metrics_df,
         mapping_source=mapping_source,
         station_meta_source=station_meta_source,
+        target_mode=getattr(opt, "sm_eval_target_mode", "test"),
         csv_path=csv_path,
         trend_plot_paths=trend_plot_paths,
         error_plot_path=error_plot_path,

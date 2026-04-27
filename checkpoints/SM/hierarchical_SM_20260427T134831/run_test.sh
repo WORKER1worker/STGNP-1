@@ -1,0 +1,2 @@
+source activate pytorch-py39
+python test.py --model hierarchical --dataset_mode SM --pred_attr SM --gpu_ids 0 --config SM_config1 --file_time 20260427T134831 --epoch best --sm_location_path dataset/SM_NQ_holdout_MS3603_strict/Stations_information_NAQU_subset.csv --sm_data_path dataset/SM_NQ_holdout_MS3603_strict/SM_NQ-30-minutes_05cm_subset.csv --sm_test_nodes_path dataset/SM_NQ_holdout_MS3603_strict/test_nodes.npy --sm_holdout_nodes_path dataset/SM_NQ_holdout_MS3603_strict/holdout_nodes.npy --sm_holdout_station_id MS3603 --sm_eval_target_mode test

@@ -1,0 +1,39 @@
+================================================================================
+模型测试与结果分析报告
+================================================================================
+生成时间: 2026-04-27 14:22:35
+数据集: SM
+模型: hierarchical
+预测属性: SM
+checkpoint目录: ./checkpoints/SM/hierarchical_SM_20260427T134831
+总耗时: 3.41 秒
+
+[一] 数据映射来源
+目标模式: holdout
+目标节点来源: <dataset.eval_target_node_index>
+站点元数据来源: <dataset.station_ids>
+
+[二] 样本统计
+保留样本数: 18624
+过滤样本数: 936
+
+[三] 总体指标
+总体 MAE: 0.016923
+总体 RMSE: 0.026217
+总体 R2: 0.897471
+
+[四] 模型内部 metrics（来自 model.compute_metrics）
+MAE: 0.016923
+RMSE: 0.026217
+MAPE: 0.150590
+
+[五] 分站点指标（前20条，按 MAE 降序）
+station_id  target_station_index  original_node_index  sample_count      MAE     RMSE       R2
+    MS3603                     0                   34         18624 0.016923 0.026217 0.897471
+
+[六] 产物路径
+结构化CSV: ./checkpoints/SM/hierarchical_SM_20260427T134831/analysis/predictions_structured.csv
+趋势图: ./checkpoints/SM/hierarchical_SM_20260427T134831/analysis/trend_prediction_vs_truth.png
+误差图: ./checkpoints/SM/hierarchical_SM_20260427T134831/analysis/error_analysis.png
+分站点指标CSV: ./checkpoints/SM/hierarchical_SM_20260427T134831/analysis/station_metrics.csv
+================================================================================

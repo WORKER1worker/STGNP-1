@@ -45,6 +45,7 @@ class BaseDataset(data.Dataset, ABC):
         self.A = None
         self.test_node_index = None
         self.train_node_index = None
+        self.eval_target_node_index = None
 
     @staticmethod
     def modify_commandline_options(parser, is_train):
@@ -76,7 +77,8 @@ class BaseDataset(data.Dataset, ABC):
         num_train_target = self.opt.num_train_target if self.opt.phase == 'train' else None
         batch_data = self._fetch_divided_form_data_item(self.raw_data, self.A, index, self.opt.t_len,
                                                         self.train_node_index, self.test_node_index,
-                                                        num_train_target, self.opt.phase)
+                                                        num_train_target, self.opt.phase,
+                                                        self.eval_target_node_index)
         return batch_data
 
     def add_norm_info(self, mean, scale):
@@ -220,6 +222,7 @@ class BaseDataset(data.Dataset, ABC):
             test_node_index,
             num_train_target=None,  # training parameter
             phase='train',
+            eval_target_node_index=None,
     ):
         """
         data will be divided into context and target set, following the setting of neural processes
@@ -232,6 +235,7 @@ class BaseDataset(data.Dataset, ABC):
             train_node_index: training node indexes (ndarray)
             test_node_index: testing node indexes (ndarray)
             phase: train, val, test (string)
+            eval_target_node_index: target nodes for non-train phases; fallback to test_node_index when None
 
         Returns:
             data item dictionary (dict {
@@ -244,7 +248,11 @@ class BaseDataset(data.Dataset, ABC):
             # random divide nodes into context set and target set
             target_index, context_index = BaseDataset._div_context_target(train_node_index, num_train_target)
         else:
-            target_index, context_index = test_node_index, train_node_index
+            if eval_target_node_index is None:
+                target_index = test_node_index
+            else:
+                target_index = eval_target_node_index
+            context_index = train_node_index
 
         A_1hop = A[target_index, :][:, context_index][np.newaxis]  # 1-hop neighbor
         A_2hop = np.dot(A, A)[target_index, :][:, context_index][np.newaxis]  # 2-hop neighbor

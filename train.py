@@ -1,4 +1,5 @@
 import os
+import shlex
 import time
 from options.train_options import TrainOptions
 from options.val_options import Valptions
@@ -101,14 +102,41 @@ if __name__ == '__main__':
     print('Run the evaluation.')
     with open(os.path.join(model.save_dir,'run_test.sh'), 'w') as f:
         f.write('source activate pytorch-py39\n')
-        cmd = 'python test.py --model {} --dataset_mode {} ' \
-                  '--pred_attr {} --gpu_ids {} --config {} --file_time {} --epoch best'.format(
-            opt.model,
-            opt.dataset_mode,
-            opt.pred_attr,
-            opt.gpu_ids[0],
-            opt.config,
-            opt.file_time)
+
+        gpu_id = opt.gpu_ids[0] if len(opt.gpu_ids) > 0 else -1
+        cmd_parts = [
+            'python', 'test.py',
+            '--model', str(opt.model),
+            '--dataset_mode', str(opt.dataset_mode),
+            '--pred_attr', str(opt.pred_attr),
+            '--gpu_ids', str(gpu_id),
+            '--config', str(opt.config),
+            '--file_time', str(opt.file_time),
+            '--epoch', 'best',
+        ]
+
+        # Keep test command aligned with training data split for SM experiments.
+        passthrough_args = [
+            'sm_location_path',
+            'sm_data_path',
+            'sm_test_nodes_path',
+            'sm_holdout_nodes_path',
+            'sm_holdout_station_id',
+            'sm_holdout_lon',
+            'sm_holdout_lat',
+        ]
+        for arg_name in passthrough_args:
+            if hasattr(opt, arg_name):
+                value = getattr(opt, arg_name)
+                if value is None or str(value).strip() == '':
+                    continue
+                cmd_parts.extend([f'--{arg_name}', str(value)])
+
+        if hasattr(opt, 'sm_eval_target_mode'):
+            # Auto-eval after training should run on regular test targets by default.
+            cmd_parts.extend(['--sm_eval_target_mode', 'test'])
+
+        cmd = ' '.join(shlex.quote(x) for x in cmd_parts)
         f.write(cmd)
 
     os.system('chmod u+x '+ os.path.join(model.save_dir,'run_test.sh'))
