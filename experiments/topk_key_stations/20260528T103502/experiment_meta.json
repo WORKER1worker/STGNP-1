@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-05-28T10:51:06.774912",
+  "model": "hierarchical",
+  "pred_attr": "SM",
+  "k_values": [
+    10
+  ],
+  "seeds": [
+    20260528
+  ],
+  "window_hours": 3,
+  "t_len": 6,
+  "importance_csv": "experiments/ratio_holdout_multi/contribution_20260528T095014/contribution_ranking.csv",
+  "training_strategy": "pmts",
+  "pmts_update_freq": 3,
+  "checkpoints_dir": "checkpoints/SM_keySite",
+  "summary_mean_csv": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260528T103502/results_summary_mean.csv",
+  "summary_by_seed_csv": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260528T103502/results_summary_by_seed.csv",
+  "plots_dir": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260528T103502/plots"
+}

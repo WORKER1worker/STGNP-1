@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-06T17:09:17.644878",
+  "holdout_station": "MS3603",
+  "ratios": [
+    0.5,
+    0.8
+  ],
+  "test_ratio": 0.1,
+  "seed_base": 20260506,
+  "summary_csv": "/root/autodl-tmp/over/STGNP/experiments/ratio_ms3603_paper/20260506T153904/summary_ms3603.csv",
+  "comparison_plot": "/root/autodl-tmp/over/STGNP/experiments/ratio_ms3603_paper/20260506T153904/comparison_ms3603.png",
+  "rows": 2
+}

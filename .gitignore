@@ -1,3 +1,32 @@
-data/dataset/SM_NQ/
-data/dataset/SM_NQ_depths/
+# Python/cache files
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Large raw/preprocessed datasets
+data/dataset/SM_NQ*/SM_NQ-30-minutes_*.csv
+data/dataset/SM_NQ*/SM_NQ-30-minutes_*.txt
+data/dataset/SM/SM_PL-30 minutes_*.csv
+data/dataset/SM/SM_PL-30 minutes_*.txt
+data/dataset/SM/1.csv
 dataset/SM/processed_raw.csv
+dataset/SM_NQ*/**/*.csv
+!dataset/SM_NQ*/**/Stations_information*.csv
+!dataset/SM_NQ*/**/split_summary.json
+!dataset/SM_NQ*/**/*stations.txt
+
+# Large experiment split copies; keep plots/logs/summary files.
+experiments/**/SM_NQ-30-minutes_*_subset.csv
+experiments/**/SM_NQ-30-minutes_*_selected*.csv
+experiments/**/*.pkl
+experiments/**/*.pickle
+experiments/**/*.pt
+experiments/**/*.pth
+experiments/**/*.ckpt
+
+# Large checkpoint/model artifacts; keep metrics, configs, reports and figures.
+checkpoints
+# Runtime outputs from common training tools
+runs/
+wandb/
+logs/

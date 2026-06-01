@@ -33,6 +33,16 @@ if __name__ == '__main__':
         epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
 
         model.train()
+
+        if str(getattr(opt, 'training_strategy', 'mts') or 'mts').lower() == 'pmts':
+            update_freq = int(getattr(opt, 'pmts_update_freq', 1) or 1)
+            update_freq = max(1, update_freq)
+            should_update = (epoch == opt.epoch_count) or ((epoch - opt.epoch_count) % update_freq == 0)
+            if should_update:
+                dataset_obj = getattr(dataset, 'dataset', None)
+                if dataset_obj is not None and hasattr(dataset_obj, 'reset_train_context_target'):
+                    dataset_obj.reset_train_context_target()
+                    print(f'  [PMTS] Resampled train split at epoch {epoch}')
         for i, data in enumerate(dataset):  # inner loop within one epoch
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
@@ -122,8 +132,8 @@ if __name__ == '__main__':
             'sm_test_nodes_path',
             'sm_holdout_nodes_path',
             'sm_holdout_station_id',
-            'sm_holdout_lon',
-            'sm_holdout_lat',
+            'sm_holdout_location_path',
+            'sm_holdout_data_path',
         ]
         for arg_name in passthrough_args:
             if hasattr(opt, arg_name):
@@ -133,8 +143,14 @@ if __name__ == '__main__':
                 cmd_parts.extend([f'--{arg_name}', str(value)])
 
         if hasattr(opt, 'sm_eval_target_mode'):
-            # Auto-eval after training should run on regular test targets by default.
-            cmd_parts.extend(['--sm_eval_target_mode', 'test'])
+            eval_mode = str(getattr(opt, 'sm_eval_target_mode') or '').strip()
+            if eval_mode:
+                cmd_parts.extend(['--sm_eval_target_mode', eval_mode])
+
+        if hasattr(opt, 'eval_stride'):
+            eval_stride = int(getattr(opt, 'eval_stride') or 0)
+            if eval_stride > 0:
+                cmd_parts.extend(['--eval_stride', str(eval_stride)])
 
         cmd = ' '.join(shlex.quote(x) for x in cmd_parts)
         f.write(cmd)

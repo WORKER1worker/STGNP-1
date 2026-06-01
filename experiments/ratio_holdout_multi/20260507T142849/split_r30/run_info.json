@@ -1,0 +1,22 @@
+{
+  "split_dir": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260507T142849/split_r30",
+  "logs_dir": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260507T142849/logs/r30",
+  "holdout_ratio": 0.3,
+  "holdout_count": 10,
+  "holdout_stations": [
+    "BC07",
+    "BC08",
+    "C2",
+    "MS3494",
+    "MS3518",
+    "MS3533",
+    "MS3576",
+    "MS3614",
+    "MSBJ",
+    "P2"
+  ],
+  "selected_count": 25,
+  "file_time": "20260507T150939",
+  "checkpoint_dir": "/root/autodl-tmp/over/STGNP/checkpoints/SM/hierarchical_SM_20260507T150939",
+  "analysis_dir": "/root/autodl-tmp/over/STGNP/checkpoints/SM/hierarchical_SM_20260507T150939/analysis"
+}

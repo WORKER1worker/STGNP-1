@@ -32,6 +32,7 @@ def find_model_using_name(model_name):
     # todo: optimize the logic
     model_filenames = ["models." + model_name + "_model",
                       "models." + model_name + '.' + model_name + "_model"]
+    import_errors = []
     for model_filename in model_filenames:
         try:
             modellib = importlib.import_module(model_filename)
@@ -42,10 +43,12 @@ def find_model_using_name(model_name):
                    and issubclass(cls, BaseModel):
                     model = cls
         except Exception as e:
-            print(e)
+            import_errors.append(f'{model_filename}: {e}')
             continue
 
     if model is None:
+        for err in import_errors:
+            print(err)
         print("In %s.py, there should be a subclass of BaseModel with class name that matches %s in lowercase." % (model_filename, target_model_name))
         exit(0)
 

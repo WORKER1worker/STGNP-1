@@ -1,0 +1,23 @@
+{
+  "split_dir": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260527T151211/split_r10/seed1005",
+  "logs_dir": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260527T151211/logs/r10/seed1005",
+  "holdout_ratio": 0.1,
+  "ratio_tag": "r10",
+  "seed": 1005,
+  "holdout_seed": 1005,
+  "window_hours": 3,
+  "t_len": 6,
+  "holdout_count": 4,
+  "holdout_stations": [
+    "BC04",
+    "MS3513",
+    "MS3523",
+    "MS3627"
+  ],
+  "selected_count": 31,
+  "file_time": "20260527T163207",
+  "checkpoint_dir": "/root/autodl-tmp/over/STGNP/checkpoints/SM_keySite/SM/hierarchical_SM_20260527T163207",
+  "analysis_dir": "/root/autodl-tmp/over/STGNP/checkpoints/SM_keySite/SM/hierarchical_SM_20260527T163207/analysis",
+  "training_strategy": "pmts",
+  "pmts_update_freq": 3
+}

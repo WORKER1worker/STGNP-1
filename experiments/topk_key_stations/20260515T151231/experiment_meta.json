@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-15T17:00:39.703372",
+  "model": "hierarchical",
+  "pred_attr": "SM",
+  "k_values": [
+    12,
+    16
+  ],
+  "seeds": [
+    3,
+    4,
+    5
+  ],
+  "window_hours": 4,
+  "t_len": 8,
+  "importance_csv": "experiments/ratio_holdout_multi/contribution_20260513T152103/contribution_ranking.csv",
+  "checkpoints_dir": "checkpoints/SM_keySite",
+  "summary_mean_csv": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260515T151231/results_summary_mean.csv",
+  "summary_by_seed_csv": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260515T151231/results_summary_by_seed.csv",
+  "plots_dir": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260515T151231/plots"
+}

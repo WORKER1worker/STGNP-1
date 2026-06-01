@@ -1,0 +1,16 @@
+{
+  "created_for": "merge station contribution experiments on another platform",
+  "source_workspace": "/root/autodl-tmp/over/STGNP",
+  "source_experiment": "experiments/ratio_holdout_multi/20260526T121940",
+  "runs": 30,
+  "use_this_csv_after_unpacking": "experiments/ratio_holdout_multi/20260526T121940/results_summary_by_seed_relocated.csv",
+  "included": [
+    "experiments/ratio_holdout_multi/20260526T121940",
+    "checkpoints/SM_keySite/SM/*/analysis for the 30 referenced runs"
+  ],
+  "excluded": [
+    "model weights (*.pth)",
+    "training logs outside analysis directories",
+    "split directory copies"
+  ]
+}

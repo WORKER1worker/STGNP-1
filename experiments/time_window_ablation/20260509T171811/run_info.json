@@ -1,0 +1,38 @@
+{
+  "exp_root": "/root/autodl-tmp/over/STGNP/experiments/time_window_ablation/20260509T171811",
+  "split_dir": "/root/autodl-tmp/over/STGNP/experiments/time_window_ablation/20260509T171811/split_fixed",
+  "holdout_stations": [
+    "MS3518",
+    "CD07",
+    "MS3533",
+    "MS3627",
+    "MS3513",
+    "MS3603"
+  ],
+  "windows": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    10,
+    12,
+    14
+  ],
+  "t_len_per_window": {
+    "1": 2,
+    "2": 4,
+    "3": 6,
+    "4": 8,
+    "5": 10,
+    "6": 12,
+    "8": 16,
+    "10": 20,
+    "12": 24,
+    "14": 28
+  },
+  "summary_csv": "/root/autodl-tmp/over/STGNP/experiments/time_window_ablation/20260509T171811/results_summary.csv",
+  "plots_dir": "/root/autodl-tmp/over/STGNP/experiments/time_window_ablation/20260509T171811/plots"
+}

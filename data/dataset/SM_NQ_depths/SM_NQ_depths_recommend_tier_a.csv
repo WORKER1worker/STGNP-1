@@ -1,0 +1,3 @@
+rank,station_id,depth_count,avg_missing_rate_percent,max_missing_rate_percent,min_missing_rate_percent,median_missing_rate_percent,std_missing_rate_percent,avg_non_missing_count
+1,MS3627,4,0.48878151925758323,0.48878151925758323,0.48878151925758323,0.48878151925758323,0.0,194836.0
+2,MS3518,4,0.5005286195114228,0.5005286195114228,0.5005286195114228,0.5005286195114228,0.0,194813.0

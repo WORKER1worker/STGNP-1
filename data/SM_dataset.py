@@ -2,6 +2,8 @@ from data.base_dataset import BaseDataset
 import os
 import pandas as pd
 import numpy as np
+from scipy import sparse
+from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
 
@@ -44,17 +46,20 @@ class SMDataset(BaseDataset):
                 help='optional path to holdout node split file (.npy)')
         parser.add_argument('--sm_holdout_station_id', type=str,
                 default='',
-                help='optional holdout station id for unseen-site inference')
-        parser.add_argument('--sm_holdout_lon', type=float,
-                default=None,
-                help='optional holdout station longitude for consistency check')
-        parser.add_argument('--sm_holdout_lat', type=float,
-                default=None,
-                help='optional holdout station latitude for consistency check')
+                help='holdout station id(s) for unseen-site inference; '
+                     'comma-separated for multiple stations, e.g. "MS3603,MS3593,MS3633"')
         parser.add_argument('--sm_eval_target_mode', type=str,
                 default='test',
-                choices=['test', 'holdout'],
+            choices=['test', 'holdout', 'all'],
                 help='target node group for non-train phases')
+        parser.add_argument('--sm_eval_full_time', action='store_true',
+            help='use full time range for non-train phases')
+        parser.add_argument('--sm_eval_target_chunk_size', type=int, default=0,
+            help='target-node chunk size for large non-train inference; 0 enables auto chunking')
+        parser.add_argument('--sm_large_graph_threshold', type=int, default=1024,
+            help='node count above which SM inference uses large-graph safeguards')
+        parser.add_argument('--sm_adj_top_k', type=int, default=0,
+            help='top-k nearest neighbors for sparse adjacency; 0 enables auto top-k on large graphs')
         parser.add_argument('--sm_holdout_location_path', type=str,
             default='data/dataset/SM_NQ/Stations_information_NAQU.csv',
             help='full location csv path used for strict holdout inference')
@@ -84,9 +89,13 @@ class SMDataset(BaseDataset):
         self.A = self.load_loc(location_path, build_adj=opt.use_adj)
         
         # Load features and normalization info
+        time_division = self.time_division[opt.phase]
+        if self.opt.phase != 'train' and getattr(self.opt, 'sm_eval_full_time', False):
+            time_division = [0.0, 1.0]
+
         self.raw_data, norm_info = self.load_feat(
-            data_path, 
-            self.time_division[opt.phase],
+            data_path,
+            time_division,
             self.station_ids,
         )
 
@@ -110,8 +119,10 @@ class SMDataset(BaseDataset):
 
         # Strict zero-participation fallback: append holdout only for holdout inference.
         if self.opt.phase != 'train' and eval_mode == 'holdout' and self.holdout_node_index.size == 0:
-            self.holdout_node_index = self.append_holdout_node_for_eval(
-                holdout_station_id=str(getattr(self.opt, 'sm_holdout_station_id', '')).strip(),
+            holdout_ids_raw = str(getattr(self.opt, 'sm_holdout_station_id', '')).strip()
+            holdout_id_list = [s.strip() for s in holdout_ids_raw.split(',') if s.strip()]
+            self.holdout_node_index = self.append_holdout_nodes_for_eval(
+                holdout_station_ids=holdout_id_list,
                 holdout_location_path=str(getattr(self.opt, 'sm_holdout_location_path', '')).strip(),
                 holdout_data_path=str(getattr(self.opt, 'sm_holdout_data_path', '')).strip(),
                 time_division=self.time_division[opt.phase],
@@ -135,16 +146,29 @@ class SMDataset(BaseDataset):
             raise ValueError('No training nodes left after excluding test/holdout nodes.')
 
         if self.opt.phase == 'train':
+            strategy = str(getattr(self.opt, 'training_strategy', 'mts') or 'mts').lower()
+            if strategy in ['tts', 'pmts']:
+                self.reset_train_context_target()
+                print(
+                    f'  Train split initialized for strategy={strategy}: '
+                    f'context={len(self.train_context_index)}, target={len(self.train_target_index)}'
+                )
+
+        if self.opt.phase == 'train':
             self.eval_target_node_index = None
         else:
             if eval_mode == 'holdout':
                 if self.holdout_node_index.size == 0:
                     raise ValueError('sm_eval_target_mode=holdout but no holdout nodes were provided.')
                 self.eval_target_node_index = self.holdout_node_index
+            elif eval_mode == 'all':
+                self.eval_target_node_index = np.arange(self.raw_data['pred'].shape[0])
             else:
                 if self.test_node_index.size == 0:
                     raise ValueError('sm_eval_target_mode=test but test_node_index is empty.')
                 self.eval_target_node_index = self.test_node_index
+
+            self._configure_eval_target_chunks()
 
         print(
             '  Node split summary: '
@@ -159,6 +183,41 @@ class SMDataset(BaseDataset):
         
         # Validate data format
         self._data_format_check()
+
+    def _configure_eval_target_chunks(self):
+        """Split large target sets into fixed inference chunks."""
+        self.eval_target_chunks = None
+        self.eval_target_chunk_size = 0
+
+        if self.eval_target_node_index is None:
+            return
+
+        num_targets = int(self.eval_target_node_index.size)
+        if num_targets == 0:
+            return
+
+        threshold = int(getattr(self.opt, 'sm_large_graph_threshold', 1024) or 1024)
+        chunk_size = int(getattr(self.opt, 'sm_eval_target_chunk_size', 0) or 0)
+        if chunk_size <= 0 and num_targets > threshold:
+            chunk_size = 256
+
+        if chunk_size <= 0 or num_targets <= chunk_size:
+            return
+
+        self.eval_target_chunk_size = chunk_size
+        self.eval_target_chunks = [
+            self.eval_target_node_index[i:i + chunk_size]
+            for i in range(0, num_targets, chunk_size)
+        ]
+
+        if int(getattr(self.opt, 'batch_size', 1)) != 1:
+            print(
+                f'  Large target set detected ({num_targets} nodes). '
+                f'Using target chunks of {chunk_size}; forcing batch_size=1.'
+            )
+            self.opt.batch_size = 1
+        else:
+            print(f'  Large target set detected ({num_targets} nodes). Using target chunks of {chunk_size}.')
     
     def load_loc(self, location_path, build_adj=True):
         """
@@ -204,20 +263,56 @@ class SMDataset(BaseDataset):
 
     def _build_adjacency_from_location(self, location_df):
         num_station = len(location_df)
-        dist = np.zeros((num_station, num_station), dtype=float)
-        for i in range(num_station):
-            for j in range(num_station):
-                dist[i, j] = self.haversine(
-                    location_df.iloc[i]['lon'],
-                    location_df.iloc[i]['lat'],
-                    location_df.iloc[j]['lon'],
-                    location_df.iloc[j]['lat'],
-                )
+        threshold = int(getattr(self.opt, 'sm_large_graph_threshold', 1024) or 1024)
+        top_k = int(getattr(self.opt, 'sm_adj_top_k', 0) or 0)
+        if top_k <= 0 and num_station > threshold:
+            top_k = 64
 
+        if top_k > 0 and top_k < num_station:
+            return self._build_sparse_topk_adjacency(location_df, top_k)
+
+        coords = location_df[['lon', 'lat']].to_numpy(dtype=np.float64)
+        lon = np.radians(coords[:, 0])
+        lat = np.radians(coords[:, 1])
+        dlon = lon[np.newaxis, :] - lon[:, np.newaxis]
+        dlat = lat[np.newaxis, :] - lat[:, np.newaxis]
+        a = (
+            np.sin(dlat / 2.0) ** 2
+            + np.cos(lat)[:, np.newaxis] * np.cos(lat)[np.newaxis, :] * np.sin(dlon / 2.0) ** 2
+        )
+        dist = 6371.0 * 2.0 * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))
         sigma = np.std(dist)
         if not np.isfinite(sigma) or sigma <= 1e-12:
             sigma = 1.0
-        return np.exp(-0.5 * (dist / sigma) ** 2)
+        return np.exp(-0.5 * (dist / sigma) ** 2).astype(np.float32)
+
+    def _build_sparse_topk_adjacency(self, location_df, top_k):
+        num_station = len(location_df)
+        k = min(max(1, int(top_k)), num_station)
+        print(f'  Large graph mode: building sparse top-{k} adjacency...')
+
+        coords_rad = np.radians(location_df[['lat', 'lon']].to_numpy(dtype=np.float64))
+        nn = NearestNeighbors(n_neighbors=k, metric='haversine', algorithm='ball_tree')
+        nn.fit(coords_rad)
+        dist_rad, indices = nn.kneighbors(coords_rad, return_distance=True)
+        dist_km = dist_rad * 6371.0
+
+        finite_dist = dist_km[np.isfinite(dist_km)]
+        sigma = np.std(finite_dist)
+        if not np.isfinite(sigma) or sigma <= 1e-12:
+            sigma = 1.0
+
+        weights = np.exp(-0.5 * (dist_km / sigma) ** 2).astype(np.float32)
+        rows = np.repeat(np.arange(num_station, dtype=np.int64), k)
+        cols = indices.reshape(-1).astype(np.int64)
+        values = weights.reshape(-1)
+        A = sparse.csr_matrix((values, (rows, cols)), shape=(num_station, num_station), dtype=np.float32)
+        A = A.maximum(A.T).tocsr()
+        A.setdiag(1.0)
+        A.eliminate_zeros()
+        density = A.nnz / float(num_station * num_station)
+        print(f'  Sparse adjacency nnz={A.nnz}, density={density:.6f}')
+        return A
 
     @staticmethod
     def _read_sm_data_frame(data_path):
@@ -272,7 +367,10 @@ class SMDataset(BaseDataset):
             global_mean = 0.0
         
         print(f'  Found {len(sensor_cols)} sensors')
-        print(f'  Sensors: {sensor_cols}')
+        if len(sensor_cols) <= 20:
+            print(f'  Sensors: {sensor_cols}')
+        else:
+            print(f'  Sensors: {sensor_cols[:10]} ... {sensor_cols[-5:]}')
         print(f'  Total records: {len(sm_data)}')
         
         # Prepare data containers
@@ -419,8 +517,11 @@ class SMDataset(BaseDataset):
 
     def get_holdout_division(self, num_nodes):
         holdout_nodes_path = str(getattr(self.opt, 'sm_holdout_nodes_path', '')).strip()
-        holdout_station_id = str(getattr(self.opt, 'sm_holdout_station_id', '')).strip()
+        holdout_ids_raw = str(getattr(self.opt, 'sm_holdout_station_id', '')).strip()
         eval_mode = getattr(self.opt, 'sm_eval_target_mode', 'test')
+
+        # Parse comma-separated station IDs
+        holdout_id_list = [s.strip() for s in holdout_ids_raw.split(',') if s.strip()]
 
         holdout_index = np.array([], dtype=np.int64)
         if holdout_nodes_path:
@@ -428,43 +529,40 @@ class SMDataset(BaseDataset):
                 raise FileNotFoundError(f'Cannot find holdout nodes file: {holdout_nodes_path}')
             print(f'Loading holdout nodes from {holdout_nodes_path}...')
             holdout_index = np.load(holdout_nodes_path)
-        elif holdout_station_id:
-            if holdout_station_id not in self.station_ids:
-                if self.opt.phase != 'train' and eval_mode == 'holdout':
-                    # Strict mode: holdout may be intentionally excluded from training subset.
-                    holdout_index = np.array([], dtype=np.int64)
-                else:
-                    raise ValueError(
-                        f'sm_holdout_station_id={holdout_station_id} not found in station ids.'
-                    )
-            else:
-                holdout_idx = self.station_ids.index(holdout_station_id)
-                holdout_index = np.array([holdout_idx], dtype=np.int64)
-
-        if holdout_index.size > 0:
-            holdout_lon = getattr(self.opt, 'sm_holdout_lon', None)
-            holdout_lat = getattr(self.opt, 'sm_holdout_lat', None)
-            if holdout_lon is not None and holdout_lat is not None and hasattr(self, 'location_df'):
-                station_row = self.location_df[self.location_df['station_id'].astype(str) == holdout_station_id]
-                if len(station_row) == 1:
-                    lon_ref = float(station_row.iloc[0]['lon'])
-                    lat_ref = float(station_row.iloc[0]['lat'])
-                    if abs(lon_ref - float(holdout_lon)) > 1e-6 or abs(lat_ref - float(holdout_lat)) > 1e-6:
+        elif len(holdout_id_list) > 0:
+            indices = []
+            for sid in holdout_id_list:
+                if sid not in self.station_ids:
+                    if self.opt.phase != 'train' and eval_mode == 'holdout':
+                        # Strict mode: holdout may be intentionally excluded from training subset.
+                        continue
+                    else:
                         raise ValueError(
-                            'Provided holdout coordinates do not match station metadata: '
-                            f'station={holdout_station_id}, expected=({lon_ref}, {lat_ref}), '
-                            f'got=({holdout_lon}, {holdout_lat})'
+                            f'sm_holdout_station_id={sid} not found in station ids.'
                         )
+                else:
+                    indices.append(self.station_ids.index(sid))
+            holdout_index = np.array(indices, dtype=np.int64)
 
         return self._normalize_node_index(holdout_index, num_nodes, 'holdout_node_index')
 
-    def append_holdout_node_for_eval(self, holdout_station_id, holdout_location_path, holdout_data_path,
-                                     time_division, mean_val, scale_val):
-        if holdout_station_id == '':
+    def append_holdout_nodes_for_eval(self, holdout_station_ids, holdout_location_path, holdout_data_path,
+                                      time_division, mean_val, scale_val):
+        """Append one or more holdout stations for unseen-site evaluation.
+
+        Args:
+            holdout_station_ids: list of station id strings
+            holdout_location_path: path to the full location csv
+            holdout_data_path: path to the full data csv
+            time_division: [start_ratio, end_ratio]
+            mean_val: normalization mean
+            scale_val: normalization scale
+
+        Returns:
+            holdout_indices: array of holdout node indices
+        """
+        if len(holdout_station_ids) == 0:
             raise ValueError('sm_eval_target_mode=holdout requires sm_holdout_station_id when holdout index file is empty.')
-        if holdout_station_id in self.station_ids:
-            holdout_idx = self.station_ids.index(holdout_station_id)
-            return np.array([holdout_idx], dtype=np.int64)
 
         if not os.path.isfile(holdout_location_path):
             raise FileNotFoundError(f'Cannot find holdout location file: {holdout_location_path}')
@@ -475,73 +573,80 @@ class SMDataset(BaseDataset):
         if not {'station_id', 'lon', 'lat'}.issubset(set(location_df.columns)):
             raise ValueError('Holdout location csv must contain station_id/lon/lat columns.')
 
-        station_row = location_df[location_df['station_id'].astype(str) == holdout_station_id]
-        if len(station_row) != 1:
-            raise ValueError(f'Cannot locate unique holdout station in location file: {holdout_station_id}')
+        sm_data = self._read_sm_data_frame(holdout_data_path)
 
-        holdout_lon = getattr(self.opt, 'sm_holdout_lon', None)
-        holdout_lat = getattr(self.opt, 'sm_holdout_lat', None)
-        lon_ref = float(station_row.iloc[0]['lon'])
-        lat_ref = float(station_row.iloc[0]['lat'])
-        if holdout_lon is not None and holdout_lat is not None:
-            if abs(lon_ref - float(holdout_lon)) > 1e-6 or abs(lat_ref - float(holdout_lat)) > 1e-6:
+        holdout_indices = []
+        for sid in holdout_station_ids:
+            # If already present in the dataset, just record its index
+            if sid in self.station_ids:
+                holdout_indices.append(self.station_ids.index(sid))
+                continue
+
+            # Look up station location
+            station_row = location_df[location_df['station_id'].astype(str) == sid]
+            if len(station_row) != 1:
+                raise ValueError(f'Cannot locate unique holdout station in location file: {sid}')
+
+            lon_ref = float(station_row.iloc[0]['lon'])
+            lat_ref = float(station_row.iloc[0]['lat'])
+
+            # Look up station data
+            if sid not in sm_data.columns:
+                raise ValueError(f'Holdout station column not found in holdout data csv: {sid}')
+
+            values = sm_data[sid].values.copy().astype(float)
+            missing = (values == -99.0).astype(int)
+            values[missing.astype(bool)] = np.nan
+
+            station_mean = np.nanmean(values)
+            if not np.isfinite(station_mean):
+                station_mean = mean_val
+            values = np.nan_to_num(values, nan=station_mean)
+
+            data_length = len(values)
+            start_index = int(time_division[0] * data_length)
+            end_index = int(time_division[1] * data_length)
+
+            pred_data = values[start_index:end_index]
+            missing_data = missing[start_index:end_index]
+            holdout_time = sm_data['datetime'].iloc[start_index:end_index].values
+
+            if len(pred_data) != self.raw_data['pred'].shape[1]:
                 raise ValueError(
-                    'Provided holdout coordinates do not match holdout location file: '
-                    f'station={holdout_station_id}, expected=({lon_ref}, {lat_ref}), '
-                    f'got=({holdout_lon}, {holdout_lat})'
+                    f'Holdout sequence length mismatch for {sid}: holdout={len(pred_data)} '
+                    f'vs context={self.raw_data["pred"].shape[1]}'
                 )
 
-        sm_data = self._read_sm_data_frame(holdout_data_path)
-        if holdout_station_id not in sm_data.columns:
-            raise ValueError(f'Holdout station column not found in holdout data csv: {holdout_station_id}')
+            holdout_time_sec = ((holdout_time - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's'))
+            if holdout_time_sec.shape[0] != self.raw_data['time'].shape[0] or not np.allclose(holdout_time_sec, self.raw_data['time']):
+                raise ValueError(f'Holdout timestamps for {sid} do not align with context dataset timestamps.')
 
-        values = sm_data[holdout_station_id].values.copy().astype(float)
-        missing = (values == -99.0).astype(int)
-        values[missing.astype(bool)] = np.nan
+            holdout_feat = np.zeros((1, len(pred_data), 0), dtype=float)
+            holdout_missing = missing_data[np.newaxis, :, np.newaxis]
+            holdout_pred = ((pred_data - mean_val) / scale_val)[np.newaxis, :, np.newaxis]
 
-        station_mean = np.nanmean(values)
-        if not np.isfinite(station_mean):
-            station_mean = mean_val
-        values = np.nan_to_num(values, nan=station_mean)
+            # Append data arrays
+            self.raw_data['feat'] = np.concatenate([self.raw_data['feat'], holdout_feat], axis=0)
+            self.raw_data['missing'] = np.concatenate([self.raw_data['missing'], holdout_missing], axis=0)
+            self.raw_data['pred'] = np.concatenate([self.raw_data['pred'], holdout_pred], axis=0)
 
-        data_length = len(values)
-        start_index = int(time_division[0] * data_length)
-        end_index = int(time_division[1] * data_length)
+            # Append location info
+            self.location_df = pd.concat([
+                self.location_df,
+                pd.DataFrame([{'station_id': sid, 'lon': lon_ref, 'lat': lat_ref}]),
+            ], ignore_index=True)
+            self.station_ids.append(sid)
 
-        pred_data = values[start_index:end_index]
-        missing_data = missing[start_index:end_index]
-        holdout_time = sm_data['datetime'].iloc[start_index:end_index].values
+            holdout_idx = len(self.station_ids) - 1
+            holdout_indices.append(holdout_idx)
+            print(f'  Strict holdout appended for evaluation: station={sid}, index={holdout_idx}')
 
-        if len(pred_data) != self.raw_data['pred'].shape[1]:
-            raise ValueError(
-                f'Holdout sequence length mismatch: holdout={len(pred_data)} '
-                f'vs context={self.raw_data["pred"].shape[1]}'
-            )
-
-        holdout_time_sec = ((holdout_time - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's'))
-        if holdout_time_sec.shape[0] != self.raw_data['time'].shape[0] or not np.allclose(holdout_time_sec, self.raw_data['time']):
-            raise ValueError('Holdout timestamps do not align with context dataset timestamps.')
-
-        holdout_feat = np.zeros((1, len(pred_data), 0), dtype=float)
-        holdout_missing = missing_data[np.newaxis, :, np.newaxis]
-        holdout_pred = ((pred_data - mean_val) / scale_val)[np.newaxis, :, np.newaxis]
-
-        self.raw_data['feat'] = np.concatenate([self.raw_data['feat'], holdout_feat], axis=0)
-        self.raw_data['missing'] = np.concatenate([self.raw_data['missing'], holdout_missing], axis=0)
-        self.raw_data['pred'] = np.concatenate([self.raw_data['pred'], holdout_pred], axis=0)
-
-        self.location_df = pd.concat([
-            self.location_df,
-            pd.DataFrame([{'station_id': holdout_station_id, 'lon': lon_ref, 'lat': lat_ref}]),
-        ], ignore_index=True)
-        self.station_ids.append(holdout_station_id)
-
+        # Rebuild adjacency matrix once after all stations are appended
         if getattr(self.opt, 'use_adj', True):
             self.A = self._build_adjacency_from_location(self.location_df)
+            print(f'  Adjacency matrix rebuilt: {self.A.shape}')
 
-        holdout_idx = len(self.station_ids) - 1
-        print(f'  Strict holdout appended for evaluation: station={holdout_station_id}, index={holdout_idx}')
-        return np.array([holdout_idx], dtype=np.int64)
+        return np.array(holdout_indices, dtype=np.int64)
 
 
 # Register this dataset

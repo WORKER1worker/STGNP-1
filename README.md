@@ -34,6 +34,13 @@ To train and evaluate models, please run the following command:
 ./train.sh [model] [dataset] [attribute] [config] [gpu_ids] [seed]
 ```
 
+Optional (PMTS periodic fixed split) example when invoking `train.py` directly:
+```bash
+python train.py --model hierarchical --dataset_mode BJAir --pred_attr PM25_Concentration \
+  --config config1 --gpu_ids 0 --n_epochs 100 \
+  --training_strategy pmts --pmts_update_freq 3
+```
+
 | setting   | values                                                        | help                                                                                            |
 |-----------|---------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
 | model     | hierarchical                                                  | model name, 'hierarchical' means our STGNP.                                                     |

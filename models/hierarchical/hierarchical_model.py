@@ -72,6 +72,12 @@ class HierarchicalModel(BaseModel):
         self.missing_mask_context = input['missing_mask_context'].transpose(1, 2).to(self.device)
         self.missing_mask_target = input['missing_mask_target'].transpose(1, 2).to(self.device)
         self.bach_time = input['time']
+        self.target_node_index = input.get('target_node_index', None)
+        chunked_eval = input.get('chunked_eval', False)
+        if torch.is_tensor(chunked_eval):
+            self.chunked_eval = bool(chunked_eval.any().item())
+        else:
+            self.chunked_eval = bool(chunked_eval)
 
     def forward(self, training=True):
         self.p_y_pred, self.q_dists, self.p_dists, self.var_c, self.var_t = \
@@ -88,6 +94,10 @@ class HierarchicalModel(BaseModel):
             self.kl_flag = True
 
     def cache_results(self):
+        if getattr(self, 'chunked_eval', False):
+            self._cache_chunked_results()
+            return
+
         self._add_to_cache('missing_target', self.missing_mask_target.reshape([-1, self.missing_mask_target.shape[2]]))
         self._add_to_cache('missing_context', self.missing_mask_context.reshape([-1, self.missing_mask_context.shape[2]]))
 
@@ -97,6 +107,35 @@ class HierarchicalModel(BaseModel):
         self._add_to_cache('variance', self.p_y_pred.variance.permute(0, 3, 1, 2).flatten(0, 1), reverse_varnorm=True)  # [time, num_m, dy]
 
         self._add_to_cache('time', self.bach_time.reshape([-1]))
+
+    def _cache_chunked_results(self):
+        b, num_m, d_y, time_steps = self.pred_target.shape
+
+        y_target = self.pred_target.permute(0, 3, 1, 2).reshape(-1, d_y)
+        y_pred = self.p_y_pred.mean.permute(0, 3, 1, 2).reshape(-1, d_y)
+        variance = self.p_y_pred.variance.permute(0, 3, 1, 2).reshape(-1, d_y)
+        missing_target = self.missing_mask_target.permute(0, 2, 1).reshape(-1, 1)
+
+        batch_time = self.bach_time
+        if not torch.is_tensor(batch_time):
+            batch_time = torch.as_tensor(batch_time)
+        batch_time = batch_time.reshape(b, time_steps)
+        time_flat = batch_time.unsqueeze(-1).repeat(1, 1, num_m).reshape(-1)
+
+        target_node_index = self.target_node_index
+        if target_node_index is None:
+            target_node_index = torch.arange(num_m).reshape(1, num_m).repeat(b, 1)
+        elif not torch.is_tensor(target_node_index):
+            target_node_index = torch.as_tensor(target_node_index)
+        target_node_index = target_node_index.reshape(b, num_m)
+        target_node_flat = target_node_index.unsqueeze(1).repeat(1, time_steps, 1).reshape(-1, 1)
+
+        self._add_to_cache('missing_target', missing_target)
+        self._add_to_cache('y_target', y_target, reverse_norm=True)
+        self._add_to_cache('y_pred', y_pred, reverse_norm=True)
+        self._add_to_cache('variance', variance, reverse_varnorm=True)
+        self._add_to_cache('time', time_flat)
+        self._add_to_cache('target_node_index', target_node_flat)
 
     def compute_metrics(self):
         y_pred = self.results['y_pred']

@@ -1,0 +1,35 @@
+{
+  "created_at": "2026-05-28T08:41:02.584336",
+  "model": "hierarchical",
+  "pred_attr": "SM",
+  "ratios": [
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6
+  ],
+  "seeds": [
+    1000,
+    1001,
+    1002,
+    1003,
+    1004,
+    1005,
+    1006,
+    1007,
+    1008,
+    1009,
+    1010
+  ],
+  "window_hours": 3,
+  "t_len": 6,
+  "training_strategy": "pmts",
+  "pmts_update_freq": 3,
+  "checkpoints_dir": "checkpoints/SM_keySite",
+  "summary_mean_csv": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260527T151211/results_summary_mean.csv",
+  "summary_by_seed_csv": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260527T151211/results_summary_by_seed.csv",
+  "importance_csv": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260527T151211/station_importance_summary.csv",
+  "plots_dir": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260527T151211/plots"
+}

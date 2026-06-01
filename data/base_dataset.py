@@ -12,6 +12,11 @@ import time
 from math import radians, cos, sin, asin, sqrt
 from data.data_util import *
 
+try:
+    from scipy import sparse
+except ImportError:  # pragma: no cover - scipy is available in the project env
+    sparse = None
+
 class BaseDataset(data.Dataset, ABC):
     """This class is an abstract base class (ABC) for datasets.
     To create a subclass, you need to implement the following four functions:
@@ -46,6 +51,8 @@ class BaseDataset(data.Dataset, ABC):
         self.test_node_index = None
         self.train_node_index = None
         self.eval_target_node_index = None
+        self.train_context_index = None
+        self.train_target_index = None
 
     @staticmethod
     def modify_commandline_options(parser, is_train):
@@ -60,11 +67,23 @@ class BaseDataset(data.Dataset, ABC):
 
     def __len__(self):
         """Return the total number of images in the dataset."""
+        base_len = self._num_time_windows()
+        if self.opt.phase != 'train' and getattr(self, 'eval_target_chunks', None) is not None:
+            return base_len * len(self.eval_target_chunks)
+        return base_len
+
+    def _num_time_windows(self):
+        total_steps = self.raw_data['feat'].shape[1]
         if self.opt.phase == 'train':
-            length = self.raw_data['feat'].shape[1] - self.opt.t_len
-        else:
-            length = int(self.raw_data['feat'].shape[1] / self.opt.t_len)
-        return length
+            return max(0, total_steps - self.opt.t_len)
+
+        t_len = self.opt.t_len
+        eval_stride = int(getattr(self.opt, 'eval_stride', 0) or 0)
+        if eval_stride > 0:
+            if total_steps < t_len:
+                return 0
+            return int((total_steps - t_len) / eval_stride) + 1
+        return int(total_steps / t_len)
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -75,10 +94,35 @@ class BaseDataset(data.Dataset, ABC):
         """
 
         num_train_target = self.opt.num_train_target if self.opt.phase == 'train' else None
-        batch_data = self._fetch_divided_form_data_item(self.raw_data, self.A, index, self.opt.t_len,
-                                                        self.train_node_index, self.test_node_index,
-                                                        num_train_target, self.opt.phase,
-                                                        self.eval_target_node_index)
+        training_strategy = str(getattr(self.opt, 'training_strategy', 'mts') or 'mts').lower()
+        item_index = index
+        target_index_override = None
+        target_chunk_index = -1
+        chunks = getattr(self, 'eval_target_chunks', None)
+        if self.opt.phase != 'train' and chunks is not None:
+            num_chunks = len(chunks)
+            item_index = index // num_chunks
+            target_chunk_index = index % num_chunks
+            target_index_override = chunks[target_chunk_index]
+
+        batch_data = self._fetch_divided_form_data_item(
+            self.raw_data,
+            self.A,
+            item_index,
+            self.opt.t_len,
+            self.train_node_index,
+            self.test_node_index,
+            num_train_target,
+            self.opt.phase,
+            self.eval_target_node_index,
+            getattr(self.opt, 'eval_stride', 0),
+            self.train_context_index,
+            self.train_target_index,
+            training_strategy,
+            target_index_override,
+            target_chunk_index,
+            chunks is not None,
+        )
         return batch_data
 
     def add_norm_info(self, mean, scale):
@@ -108,7 +152,8 @@ class BaseDataset(data.Dataset, ABC):
             raise ValueError('test_node_index and train_node_index must be 1D arrays')
         # check adjacency matrix
         if not isinstance(self.A, np.ndarray):
-            raise ValueError('A must be a numpy array')
+            if sparse is None or not sparse.issparse(self.A):
+                raise ValueError('A must be a numpy array or scipy sparse matrix')
         if len(self.A.shape) != 2:
             raise ValueError('A must be a 2D array')
         # norm info check
@@ -147,6 +192,26 @@ class BaseDataset(data.Dataset, ABC):
         context_index = np.setdiff1d(train_station_index, target_index)
         return target_index, context_index
 
+    def reset_train_context_target(self, num_train_target=None):
+        """Sample and store a fixed context/target split for training."""
+        if self.train_node_index is None or self.train_node_index.size < 2:
+            raise ValueError('train_node_index must contain at least 2 nodes to split')
+
+        num_target = self.opt.num_train_target if num_train_target is None else int(num_train_target)
+        if num_target <= 0:
+            raise ValueError('num_train_target must be positive')
+        if num_target >= self.train_node_index.size:
+            num_target = max(1, self.train_node_index.size - 1)
+            print(
+                f'  [train split] num_train_target too large; '
+                f'clamped to {num_target} for {self.train_node_index.size} training nodes'
+            )
+
+        target_index, context_index = BaseDataset._div_context_target(self.train_node_index, num_target)
+        self.train_target_index = target_index
+        self.train_context_index = context_index
+        return target_index, context_index
+
     @staticmethod
     def _get_context_target_index(context_station_list, target_station_list):
         """
@@ -168,7 +233,7 @@ class BaseDataset(data.Dataset, ABC):
         return context_index, target_index
 
     @staticmethod
-    def _get_start_index(index, t_len, phase='train'):
+    def _get_start_index(index, t_len, phase='train', eval_stride=0):
         """
         Get the start index of the time series
         Training phase: current index + t_len
@@ -186,7 +251,8 @@ class BaseDataset(data.Dataset, ABC):
             start_index = index
             end_index = index + t_len
         else:
-            start_index = index * t_len
+            stride = eval_stride if eval_stride and eval_stride > 0 else t_len
+            start_index = index * stride
             end_index = start_index + t_len
         return start_index, end_index
 
@@ -223,6 +289,13 @@ class BaseDataset(data.Dataset, ABC):
             num_train_target=None,  # training parameter
             phase='train',
             eval_target_node_index=None,
+            eval_stride=0,
+            train_context_index=None,
+            train_target_index=None,
+            training_strategy='mts',
+            target_index_override=None,
+            target_chunk_index=-1,
+            chunked_eval=False,
     ):
         """
         data will be divided into context and target set, following the setting of neural processes
@@ -245,20 +318,26 @@ class BaseDataset(data.Dataset, ABC):
             })
         """
         if phase == 'train':
-            # random divide nodes into context set and target set
-            target_index, context_index = BaseDataset._div_context_target(train_node_index, num_train_target)
+            strategy = str(training_strategy or 'mts').lower()
+            if strategy in ['tts', 'pmts'] and train_context_index is not None and train_target_index is not None:
+                context_index = train_context_index
+                target_index = train_target_index
+            else:
+                # random divide nodes into context set and target set
+                target_index, context_index = BaseDataset._div_context_target(train_node_index, num_train_target)
         else:
-            if eval_target_node_index is None:
+            if target_index_override is not None:
+                target_index = target_index_override
+            elif eval_target_node_index is None:
                 target_index = test_node_index
             else:
                 target_index = eval_target_node_index
             context_index = train_node_index
 
-        A_1hop = A[target_index, :][:, context_index][np.newaxis]  # 1-hop neighbor
-        A_2hop = np.dot(A, A)[target_index, :][:, context_index][np.newaxis]  # 2-hop neighbor
+        A_1hop, A_2hop = BaseDataset._slice_adjacency_hops(A, target_index, context_index)
         adj = np.concatenate([A_1hop, A_2hop], axis=0)
 
-        start_index, end_index = BaseDataset._get_start_index(index, t_len, phase)
+        start_index, end_index = BaseDataset._get_start_index(index, t_len, phase, eval_stride)
 
         pred_target, feat_target, missing_mask_target = BaseDataset._fetch_data_item_from_dict(data, start_index, end_index, target_index)
         pred_context, feat_context, missing_mask_context = BaseDataset._fetch_data_item_from_dict(data, start_index, end_index, context_index)
@@ -274,13 +353,31 @@ class BaseDataset(data.Dataset, ABC):
                  'adj': adj.float(),  # [2, num_m, num_n]
                  'missing_mask_context': missing_mask_context.float(),  # [num_n, time]
                  'missing_mask_target': missing_mask_target.float(),  # [num_m, time]
-                 'time': time  # [time]
+                 'time': time,  # [time]
+                 'target_node_index': torch.from_numpy(np.asarray(target_index, dtype=np.int64)),
+                 'target_chunk_index': torch.tensor(int(target_chunk_index), dtype=torch.long),
+                 'chunked_eval': torch.tensor(bool(chunked_eval), dtype=torch.bool),
          }
         # add features if available
         if feat_context is not None:
             batch_data['feat_context'] = feat_context.float() # [num_n, time, d_x]
             batch_data['feat_target'] = feat_target.float() # [num_m, time, d_x]
         return batch_data
+
+    @staticmethod
+    def _slice_adjacency_hops(A, target_index, context_index):
+        target_index = np.asarray(target_index, dtype=np.int64)
+        context_index = np.asarray(context_index, dtype=np.int64)
+
+        if sparse is not None and sparse.issparse(A):
+            A_csr = A.tocsr()
+            A_1hop = A_csr[target_index, :][:, context_index].toarray()[np.newaxis]
+            A_2hop = (A_csr[target_index, :] @ A_csr[:, context_index]).toarray()[np.newaxis]
+        else:
+            A_1hop = A[target_index, :][:, context_index][np.newaxis]
+            A_2hop = (A[target_index, :] @ A[:, context_index])[np.newaxis]
+
+        return A_1hop.astype(np.float32, copy=False), A_2hop.astype(np.float32, copy=False)
 
     def get_node_division(self, test_nodes_path, num_nodes=None, test_node_ratio=3/10):
         if os.path.isfile(test_nodes_path):

@@ -1,0 +1,42 @@
+{
+  "location_path": "data/dataset/SM_NQ/Stations_information_NAQU.csv",
+  "data_path": "data/dataset/SM_NQ/SM_NQ-30-minutes_05cm.csv",
+  "selected_count": 7,
+  "train_count": 6,
+  "test_count": 1,
+  "holdout_count": 1,
+  "selected_stations_sorted": [
+    "BC04",
+    "BC05",
+    "C1",
+    "F5",
+    "MS3533",
+    "MS3576",
+    "MS3627"
+  ],
+  "train_stations": [
+    "BC04",
+    "BC05",
+    "C1",
+    "MS3533",
+    "MS3576",
+    "MS3627"
+  ],
+  "test_stations": [
+    "F5"
+  ],
+  "holdout_stations": [
+    "MS3603"
+  ],
+  "test_indices": [
+    3
+  ],
+  "holdout_indices": [],
+  "holdout_mode": "dynamic_append_for_eval",
+  "artifacts": {
+    "location_csv": "/root/autodl-tmp/over/STGNP/experiments/ratio_ms3603_paper/20260506T153904/split_r80/Stations_information_NAQU_subset.csv",
+    "data_csv": "/root/autodl-tmp/over/STGNP/experiments/ratio_ms3603_paper/20260506T153904/split_r80/SM_NQ-30-minutes_05cm_subset.csv",
+    "test_nodes_npy": "/root/autodl-tmp/over/STGNP/experiments/ratio_ms3603_paper/20260506T153904/split_r80/test_nodes.npy",
+    "holdout_nodes_npy": "/root/autodl-tmp/over/STGNP/experiments/ratio_ms3603_paper/20260506T153904/split_r80/holdout_nodes.npy"
+  }
+}

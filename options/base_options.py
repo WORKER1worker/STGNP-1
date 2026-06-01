@@ -35,6 +35,8 @@ class BaseOptions():
         parser.add_argument('--dataset_mode', type=str, default='', help='chooses dataset')
         # extrapolation dataset path
         parser.add_argument('--t_len', type=int, default=24, help='time window for inference')
+        parser.add_argument('--eval_stride', type=int, default=0,
+                    help='step size for non-train windows; 0 keeps non-overlap (stride=t_len)')
         parser.add_argument('--serial_batches', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')
         parser.add_argument('--num_threads', default=0, type=int, help='# threads for loading data. Note: larger than 0 will throw out an error in my computer')
         parser.add_argument('--batch_size', type=int, default=128, help='input batch size')

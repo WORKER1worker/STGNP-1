@@ -185,7 +185,14 @@ def load_target_nodes(
     target_station_count: int,
 ) -> Tuple[np.ndarray, str]:
     """加载目标节点索引，支持 test/holdout，失败时回退顺序映射。"""
-    eval_mode = getattr(opt, "sm_eval_target_mode", "test")
+    eval_mode = str(getattr(opt, "sm_eval_target_mode", "test") or "test").lower()
+    ds = getattr(raw_dataset, "dataset", None)
+
+    if eval_mode == "holdout" and ds is not None and hasattr(ds, "holdout_node_index"):
+        holdout_idx = np.asarray(ds.holdout_node_index).reshape(-1).astype(int)
+        if holdout_idx.size > 0:
+            print(f"[映射] holdout 模式优先使用数据集 holdout_node_index，长度={len(holdout_idx)}")
+            return holdout_idx, "<dataset.holdout_node_index>"
 
     # 显式指定路径优先，便于复现实验；参数名沿用历史兼容。
     if analysis_args.test_nodes_path:
@@ -197,7 +204,6 @@ def load_target_nodes(
         print(f"[映射] 显式目标节点文件不存在: {analysis_args.test_nodes_path}，将继续自动推断")
 
     # 自动模式下，优先与当前推理数据保持一致，避免路径猜测与数据加载来源不一致。
-    ds = getattr(raw_dataset, "dataset", None)
     if ds is not None and hasattr(ds, "eval_target_node_index") and ds.eval_target_node_index is not None:
         arr = np.asarray(ds.eval_target_node_index).reshape(-1).astype(int)
         print(f"[映射] 使用数据集对象 eval_target_node_index(mode={eval_mode})，长度={len(arr)}")
@@ -461,6 +467,7 @@ def generate_csv_and_stats(
     total_count = 0
     total_abs_sum = 0.0
     total_sq_sum = 0.0
+    total_err_sum = 0.0
     total_true_sum = 0.0
     total_true_sq_sum = 0.0
 
@@ -472,6 +479,7 @@ def generate_csv_and_stats(
             "count": 0,
             "abs_sum": 0.0,
             "sq_sum": 0.0,
+            "err_sum": 0.0,
             "true_sum": 0.0,
             "true_sq_sum": 0.0,
             "target_idx": -1,
@@ -497,6 +505,7 @@ def generate_csv_and_stats(
                 pred_val = float(y_pred[t_idx, s_idx, f_idx])
                 abs_error = abs(pred_val - true_val)
                 sq_error = (pred_val - true_val) ** 2
+                err = pred_val - true_val
                 missing_flag = is_missing_at(missing_target, t_idx, s_idx, min(f_idx, (missing_target.shape[2] - 1)) if missing_target is not None and missing_target.ndim == 3 else 0)
 
                 keep = should_keep_record(true_val, pred_val, abs_error, missing_flag, analysis_args)
@@ -522,6 +531,7 @@ def generate_csv_and_stats(
                 total_count += 1
                 total_abs_sum += abs_error
                 total_sq_sum += sq_error
+                total_err_sum += err
                 total_true_sum += true_val
                 total_true_sq_sum += true_val * true_val
 
@@ -529,6 +539,7 @@ def generate_csv_and_stats(
                 st["count"] += 1
                 st["abs_sum"] += abs_error
                 st["sq_sum"] += sq_error
+                st["err_sum"] += err
                 st["true_sum"] += true_val
                 st["true_sq_sum"] += true_val * true_val
                 st["target_idx"] = int(s_idx)
@@ -537,14 +548,7 @@ def generate_csv_and_stats(
                 sample_seen = reservoir_add(sample_rows, row, analysis_args.max_plot_points, sample_seen, rng)
 
                 if len(chunk_rows) >= analysis_args.csv_chunk_size:
-                    chunk_df = pd.DataFrame(chunk_rows)
-                    chunk_df.to_csv(
-                        csv_path,
-                        mode="a",
-                        index=False,
-                        encoding="utf-8",
-                        header=(not header_written),
-                    )
+                    # CSV output disabled to save disk space.
                     header_written = True
                     chunk_rows.clear()
 
@@ -552,22 +556,25 @@ def generate_csv_and_stats(
             print(f"[CSV] 已处理时间步 {t_idx + 1}/{n_time}")
 
     if chunk_rows:
-        chunk_df = pd.DataFrame(chunk_rows)
-        chunk_df.to_csv(
-            csv_path,
-            mode="a",
-            index=False,
-            encoding="utf-8",
-            header=(not header_written),
-        )
+        # CSV output disabled to save disk space.
+        chunk_rows.clear()
 
     overall_mae = float(total_abs_sum / total_count) if total_count > 0 else float("nan")
     overall_rmse = float(np.sqrt(total_sq_sum / total_count)) if total_count > 0 else float("nan")
+    overall_bias = float(total_err_sum / total_count) if total_count > 0 else float("nan")
+    if total_count > 0:
+        overall_mse = float(total_sq_sum / total_count)
+        overall_ubrmse = float(np.sqrt(max(overall_mse - overall_bias ** 2, 0.0)))
+    else:
+        overall_ubrmse = float("nan")
     overall_r2 = calc_r2_from_stats(total_sq_sum, total_true_sum, total_true_sq_sum, total_count)
 
     station_rows = []
     for station_id, st in station_stats.items():
         c = st["count"]
+        station_bias = float(st["err_sum"] / c) if c > 0 else float("nan")
+        station_mse = float(st["sq_sum"] / c) if c > 0 else float("nan")
+        station_ubrmse = float(np.sqrt(max(station_mse - station_bias ** 2, 0.0))) if c > 0 else float("nan")
         station_rows.append(
             {
                 "station_id": station_id,
@@ -576,6 +583,7 @@ def generate_csv_and_stats(
                 "sample_count": c,
                 "MAE": float(st["abs_sum"] / c) if c > 0 else float("nan"),
                 "RMSE": float(np.sqrt(st["sq_sum"] / c)) if c > 0 else float("nan"),
+                "ubRMSE": station_ubrmse,
                 "R2": calc_r2_from_stats(st["sq_sum"], st["true_sum"], st["true_sq_sum"], c),
             }
         )
@@ -589,6 +597,7 @@ def generate_csv_and_stats(
     summary = {
         "overall_MAE": overall_mae,
         "overall_RMSE": overall_rmse,
+        "overall_ubRMSE": overall_ubrmse,
         "overall_R2": overall_r2,
         "sample_count": int(total_count),
     }
@@ -816,6 +825,7 @@ def write_report(
     lines.append("[三] 总体指标")
     lines.append(f"总体 MAE: {summary.get('overall_MAE', float('nan')):.6f}")
     lines.append(f"总体 RMSE: {summary.get('overall_RMSE', float('nan')):.6f}")
+    lines.append(f"总体 ubRMSE: {summary.get('overall_ubRMSE', float('nan')):.6f}")
     lines.append(f"总体 R2: {summary.get('overall_R2', float('nan')):.6f}")
     lines.append("")
 
@@ -825,9 +835,9 @@ def write_report(
             lines.append(f"{k}: {v:.6f}")
         lines.append("")
 
-    lines.append("[五] 分站点指标（前20条，按 MAE 降序）")
+    lines.append("[五] 分站点指标（全部 holdout 站点，按 MAE 降序）")
     if station_metrics_df is not None and not station_metrics_df.empty:
-        lines.append(station_metrics_df.head(20).to_string(index=False))
+        lines.append(station_metrics_df.to_string(index=False))
     else:
         lines.append("无可用分站点指标。")
     lines.append("")
@@ -922,7 +932,7 @@ def main() -> None:
     error_plot_path = os.path.join(output_dir, analysis_args.error_plot_name)
     report_path = os.path.join(output_dir, analysis_args.report_name)
 
-    print("[5/6] 生成结构化 CSV 与统计结果")
+    print("[5/6] 生成统计结果（CSV 输出已禁用）")
     summary, station_metrics_df, sample_df, count_info = generate_csv_and_stats(
         y_pred=y_pred,
         y_target=y_target,
@@ -938,6 +948,7 @@ def main() -> None:
     print("总体统计:")
     print(f"  MAE : {summary['overall_MAE']:.6f}")
     print(f"  RMSE: {summary['overall_RMSE']:.6f}")
+    print(f"  ubRMSE: {summary['overall_ubRMSE']:.6f}")
     print(f"  R2  : {summary['overall_R2']:.6f}")
     print(f"  保留样本: {count_info['kept']}")
     print(f"  过滤样本: {count_info['dropped']}")

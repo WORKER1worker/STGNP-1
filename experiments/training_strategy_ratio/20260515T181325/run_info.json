@@ -1,0 +1,44 @@
+{
+  "exp_root": "/root/autodl-tmp/over/STGNP/experiments/training_strategy_ratio/20260515T181325",
+  "ratios": [
+    {
+      "ratio_label": "4:3",
+      "observed_count": 20,
+      "holdout_count": 15,
+      "ratio_tag": "obs20_holdout15"
+    },
+    {
+      "ratio_label": "5:2",
+      "observed_count": 25,
+      "holdout_count": 10,
+      "ratio_tag": "obs25_holdout10"
+    },
+    {
+      "ratio_label": "6:1",
+      "observed_count": 30,
+      "holdout_count": 5,
+      "ratio_tag": "obs30_holdout5"
+    }
+  ],
+  "strategies": [
+    "orig",
+    "tts",
+    "mts",
+    "pmts"
+  ],
+  "seeds": [
+    20260515,
+    20260516,
+    20260517,
+    20260518,
+    20260519
+  ],
+  "t_len": 8,
+  "window_hours": 4,
+  "num_train_target": 4,
+  "orig_num_train_target": 3,
+  "pmts_update_freq": 1,
+  "summary_mean_csv": "/root/autodl-tmp/over/STGNP/experiments/training_strategy_ratio/20260515T181325/results_summary_mean.csv",
+  "summary_by_seed_csv": "/root/autodl-tmp/over/STGNP/experiments/training_strategy_ratio/20260515T181325/results_summary_by_seed.csv",
+  "plots_dir": "/root/autodl-tmp/over/STGNP/experiments/training_strategy_ratio/20260515T181325/plots"
+}

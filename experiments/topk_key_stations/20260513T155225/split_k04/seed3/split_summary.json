@@ -1,0 +1,63 @@
+{
+  "location_path": "data/dataset/SM_NQ/Stations_information_NAQU.csv",
+  "data_path": "data/dataset/SM_NQ/SM_NQ-30-minutes_05cm.csv",
+  "selected_count": 4,
+  "train_count": 4,
+  "test_count": 0,
+  "holdout_count": 31,
+  "selected_stations_sorted": [
+    "MS3501",
+    "MS3603",
+    "MS3620",
+    "P2"
+  ],
+  "train_stations": [
+    "MS3501",
+    "P2",
+    "MS3603",
+    "MS3620"
+  ],
+  "test_stations": [],
+  "holdout_stations": [
+    "BC02",
+    "BC03",
+    "BC04",
+    "BC05",
+    "BC06",
+    "BC07",
+    "BC08",
+    "C1",
+    "C2",
+    "CD01",
+    "CD03",
+    "CD07",
+    "F3",
+    "F4",
+    "F5",
+    "MS3482",
+    "MS3488",
+    "MS3494",
+    "MS3513",
+    "MS3518",
+    "MS3523",
+    "MS3527",
+    "MS3533",
+    "MS3576",
+    "MS3614",
+    "MS3627",
+    "MSBJ",
+    "MSNQRW",
+    "P1",
+    "P10",
+    "P11"
+  ],
+  "test_indices": [],
+  "holdout_indices": [],
+  "holdout_mode": "dynamic_append_for_eval",
+  "artifacts": {
+    "location_csv": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260513T155225/split_k04/seed3/Stations_information_NAQU_subset.csv",
+    "data_csv": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260513T155225/split_k04/seed3/SM_NQ-30-minutes_05cm_subset.csv",
+    "test_nodes_npy": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260513T155225/split_k04/seed3/test_nodes.npy",
+    "holdout_nodes_npy": "/root/autodl-tmp/over/STGNP/experiments/topk_key_stations/20260513T155225/split_k04/seed3/holdout_nodes.npy"
+  }
+}

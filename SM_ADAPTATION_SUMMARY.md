@@ -81,7 +81,11 @@ python validate_sm_simple.py
 ```bash
 python train.py --model hierarchical --dataset_mode SM --pred_attr SM \
     --config SM_config1 --phase train --gpu_ids 0 --n_epochs 100 \
-    --num_train_target 3 --enable_val --save_best
+    --num_train_target 3 \
+    --training_strategy pmts \
+    --pmts_update_freq 3 \
+    --enable_val \
+    --save_best
 ```
 
 ---

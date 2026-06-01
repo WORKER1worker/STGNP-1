@@ -1,0 +1,3 @@
+holdout_ratio,window_hours_x,t_len_x,overall_mae_mean,overall_rmse_mean,overall_r2_mean,window_hours_y,t_len_y,overall_mae_std,overall_rmse_std,overall_r2_std
+0.1,3,6,0.05044,0.064351,0.657507,3,6,0.0,0.0,0.0
+0.2,3,6,0.040601,0.0536,0.760874,3,6,0.0,0.0,0.0

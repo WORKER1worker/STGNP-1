@@ -1,0 +1,11 @@
+{
+  "created_at": "2026-05-28T16:15:47.018032",
+  "inputs": [
+    "experiments/ratio_holdout_multi/20260527T151211/results_summary_by_seed.csv",
+    "experiments/ratio_holdout_multi/20260528T112911/results_summary_by_seed.csv",
+    "experiments/ratio_holdout_multi/20260528T152428/results_summary_by_seed.csv"
+  ],
+  "ratio_weight": "uniform",
+  "contribution_csv": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/contribution_20260528T161547/contribution_ranking.csv",
+  "predictability_csv": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/contribution_20260528T161547/predictability_ranking.csv"
+}

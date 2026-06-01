@@ -87,9 +87,8 @@ def main() -> None:
     parser.add_argument("--test-stations", type=str, default="", help="Comma/newline-separated test stations")
     parser.add_argument("--test-stations-file", type=str, default="", help="Text file with test stations")
 
-    parser.add_argument("--holdout-station-id", type=str, default="", help="Single holdout station id")
-    parser.add_argument("--holdout-lon", type=float, default=None, help="Optional holdout station longitude")
-    parser.add_argument("--holdout-lat", type=float, default=None, help="Optional holdout station latitude")
+    parser.add_argument("--holdout-station-id", type=str, default="",
+                        help="Holdout station id(s), comma-separated for multiple, e.g. 'MS3603,MS3518,CD01'")
 
     args = parser.parse_args()
 
@@ -123,20 +122,21 @@ def main() -> None:
     if missing_test:
         raise ValueError(f"Test stations are not in selected stations: {missing_test}")
 
-    holdout_station = args.holdout_station_id.strip()
-    if holdout_station:
-        if holdout_station not in available_ids:
+    holdout_stations = parse_station_values(args.holdout_station_id)
+    for hs in holdout_stations:
+        if hs not in available_ids:
             raise ValueError(
-                f"Holdout station {holdout_station} is not available in both location/data source files"
+                f"Holdout station {hs} is not available in both location/data source files"
             )
-        if holdout_station in test_stations:
-            raise ValueError(f"Holdout station {holdout_station} cannot also be a test station")
-        validate_coordinate_match(location_df, holdout_station, args.holdout_lon, args.holdout_lat)
-        if holdout_station in selected:
-            selected = [s for s in selected if s != holdout_station]
-            print(
-                f"Strict holdout mode: removed holdout station from selected subset: {holdout_station}"
-            )
+        if hs in test_stations:
+            raise ValueError(f"Holdout station {hs} cannot also be a test station")
+    holdout_set = set(holdout_stations)
+    removed = [s for s in selected if s in holdout_set]
+    if removed:
+        selected = [s for s in selected if s not in holdout_set]
+        print(
+            f"Strict holdout mode: removed {len(removed)} holdout station(s) from selected subset: {removed}"
+        )
 
     train_stations = [s for s in selected if s not in set(test_stations)]
     if len(train_stations) == 0:
@@ -178,14 +178,14 @@ def main() -> None:
         "selected_count": len(selected_sorted),
         "train_count": len(train_stations),
         "test_count": int(len(test_idx)),
-        "holdout_count": 1 if holdout_station else 0,
+        "holdout_count": len(holdout_stations),
         "selected_stations_sorted": selected_sorted,
         "train_stations": train_stations,
         "test_stations": test_stations,
-        "holdout_station": holdout_station,
+        "holdout_stations": holdout_stations,
         "test_indices": test_idx.tolist(),
         "holdout_indices": holdout_idx.tolist(),
-        "holdout_mode": "dynamic_append_for_eval" if holdout_station else "none",
+        "holdout_mode": "dynamic_append_for_eval" if holdout_stations else "none",
         "artifacts": {
             "location_csv": location_out,
             "data_csv": data_out,
@@ -198,10 +198,9 @@ def main() -> None:
 
     print("Split artifacts generated successfully")
     print(f"  output_dir: {output_dir}")
-    holdout_count = 1 if holdout_station else 0
-    print(f"  selected/train/test/holdout: {len(selected_sorted)}/{len(train_stations)}/{len(test_idx)}/{holdout_count}")
+    print(f"  selected/train/test/holdout: {len(selected_sorted)}/{len(train_stations)}/{len(test_idx)}/{len(holdout_stations)}")
     print(f"  test_indices: {test_idx.tolist()}")
-    print(f"  holdout_indices: {holdout_idx.tolist()}")
+    print(f"  holdout_stations: {holdout_stations}")
 
 
 if __name__ == "__main__":

@@ -222,6 +222,8 @@ python train.py \
     --gpu_ids 0 \
     --n_epochs 100 \
     --num_train_target 3 \
+    --training_strategy pmts \
+    --pmts_update_freq 3 \
     --enable_val \
     --save_best \
     --seed 2023
@@ -493,7 +495,12 @@ python validate_sm_simple.py
 # 2. 开始训练 (推荐配置)
 python train.py --model hierarchical --dataset_mode SM --pred_attr SM \
     --config SM_config1 --phase train --gpu_ids 0 --n_epochs 100 \
-    --num_train_target 3 --enable_val --save_best --seed 2023
+    --num_train_target 3 \
+    --training_strategy pmts \
+    --pmts_update_freq 3 \
+    --enable_val \
+    --save_best \
+    --seed 2023
 
 # 3. 监控训练进度
 # 查看 checkpoints/SM/hierarchical_SM_*/train_error.log

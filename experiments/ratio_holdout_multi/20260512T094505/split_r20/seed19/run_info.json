@@ -1,0 +1,24 @@
+{
+  "split_dir": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260512T094505/split_r20/seed19",
+  "logs_dir": "/root/autodl-tmp/over/STGNP/experiments/ratio_holdout_multi/20260512T094505/logs/r20/seed19",
+  "holdout_ratio": 0.2,
+  "ratio_tag": "r20",
+  "seed": 19,
+  "holdout_seed": 1019,
+  "window_hours": 4,
+  "t_len": 8,
+  "holdout_count": 7,
+  "holdout_stations": [
+    "CD07",
+    "F3",
+    "MS3527",
+    "MS3576",
+    "MSBJ",
+    "P1",
+    "P11"
+  ],
+  "selected_count": 28,
+  "file_time": "20260512T123745",
+  "checkpoint_dir": "/root/autodl-tmp/over/STGNP/checkpoints/SM_keySite/SM/hierarchical_SM_20260512T123745",
+  "analysis_dir": "/root/autodl-tmp/over/STGNP/checkpoints/SM_keySite/SM/hierarchical_SM_20260512T123745/analysis"
+}

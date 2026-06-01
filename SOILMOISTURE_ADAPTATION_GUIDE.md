@@ -182,6 +182,8 @@ python train.py \
     --gpu_ids 0 \
     --n_epochs 100 \
     --num_train_target 3 \
+    --training_strategy pmts \
+    --pmts_update_freq 3 \
     --enable_val \
     --save_best \
     --seed 2023
@@ -199,6 +201,8 @@ python train.py \
 - `--config SM_config1`: 使用推荐配置
 - `--n_epochs 100`: 总训练轮数 (根据需要调整)
 - `--num_train_target 3`: 每批训练的目标节点数
+- `--training_strategy pmts`: 使用周期性固定切分 (PMTS)
+- `--pmts_update_freq 3`: 每3个epoch更新一次PMTS切分
 - `--enable_val`: 启用验证集评估
 - `--save_best`: 保存最佳模型
 - `--seed 2023`: 随机种子 (保证可重复性)

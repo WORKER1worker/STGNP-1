@@ -26,10 +26,15 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--phase', type=str, default='train', help='train, val, test, etc')
         # parameters for curriculum learning
         parser.add_argument('--enable_curriculum', action='store_true', help='# of target for training will increase to num_train_target_end from num_train_target')
-        parser.add_argument('--num_train_target', type=int, default=3, help='# of target set for training at the start')
+        parser.add_argument('--num_train_target', type=int, default=4, help='# of target set for training at the start')
         parser.add_argument('--num_train_target_end', type=int, default=6, help='# of target set for training at the end')
         parser.add_argument('--n_epochs_target', type=int, default=100, help='number of epochs with initial num_train_target')
         parser.add_argument('--n_epochs_target_increase', type=int, default=150, help='number of epochs with the initial learning rate')
+        # training strategy for context/target split
+        parser.add_argument('--training_strategy', type=str, default='mts', choices=['tts', 'mts', 'pmts'],
+                    help='context/target split strategy: tts=fixed, mts=random per sample, pmts=periodic fixed')
+        parser.add_argument('--pmts_update_freq', type=int, default=1,
+                    help='PMTS update frequency in epochs (re-sample fixed split)')
         # training parameters
         parser.add_argument('--enable_val', action='store_true', help='evaluate model during training')
         parser.add_argument('--n_epochs', type=int, default=20, help='number of epochs with the initial learning rate')

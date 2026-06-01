@@ -25,9 +25,7 @@
              sm_data_path: dataset/SM_NQ_holdout_MS3603_strict/SM_NQ-30-minutes_05cm_subset.csv	[default: data/dataset/SM_NQ/SM_NQ-30-minutes_05cm.csv]
       sm_eval_target_mode: holdout                       	[default: test]
      sm_holdout_data_path: data/dataset/SM_NQ/SM_NQ-30-minutes_05cm.csv
-           sm_holdout_lat: None                          
  sm_holdout_location_path: data/dataset/SM_NQ/Stations_information_NAQU.csv
-           sm_holdout_lon: None                          
     sm_holdout_nodes_path: dataset/SM_NQ_holdout_MS3603_strict/holdout_nodes.npy	[default: ]
     sm_holdout_station_id: MS3603                        	[default: ]
          sm_location_path: dataset/SM_NQ_holdout_MS3603_strict/Stations_information_NAQU_subset.csv	[default: data/dataset/SM_NQ/Stations_information_NAQU.csv]
